@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-import cv2
-
 from rover_interfaces import PerceptionState
 
 
@@ -10,13 +8,16 @@ from rover_interfaces import PerceptionState
 class SimulatedScenario:
     name: str
     obstacle_ahead: bool
-    free_direction: str
+    free_direction: str      # "left" | "right" | "center" | "none"
     corridor_visible: bool
     summary: str
     confidence: float = 1.0
 
 
 class PerceptionModule:
+    """
+    Scenario-based perception simulator for testing guidance decisions.
+    """
 
     BUILTIN_SCENARIOS = {
         "corridor_forward": SimulatedScenario(
@@ -52,34 +53,30 @@ class PerceptionModule:
             obstacle_ahead=False,
             free_direction="none",
             corridor_visible=False,
-            summary="Environment unclear.",
+            summary="Environment unclear. Reassessment recommended.",
             confidence=0.4
         ),
     }
 
     def __init__(
         self,
-        mode: str = "camera",  # 🔥 NEW
         default_scenario: str = "corridor_forward",
         scenario_sequence: Optional[List[str]] = None,
         loop_sequence: bool = True,
     ):
-        self.mode = mode
+        if default_scenario not in self.BUILTIN_SCENARIOS:
+            raise ValueError(f"Unknown default scenario: {default_scenario}")
 
-        # --- SIMULATION SETUP ---
         self.default_scenario = default_scenario
         self.scenario_sequence = scenario_sequence or []
         self.loop_sequence = loop_sequence
         self.sequence_index = 0
         self.current_scenario_name = default_scenario
 
-        # --- CAMERA SETUP ---
-        if self.mode == "camera":
-            self.cap = cv2.VideoCapture(0)
-
-    # =========================
-    # SIMULATION LOGIC (UNCHANGED)
-    # =========================
+    def set_scenario(self, scenario_name: str) -> None:
+        if scenario_name not in self.BUILTIN_SCENARIOS:
+            raise ValueError(f"Unknown scenario: {scenario_name}")
+        self.current_scenario_name = scenario_name
 
     def _get_next_scenario_name(self) -> str:
         if not self.scenario_sequence:
@@ -93,9 +90,13 @@ class PerceptionModule:
 
         scenario_name = self.scenario_sequence[self.sequence_index]
         self.sequence_index += 1
+
+        if scenario_name not in self.BUILTIN_SCENARIOS:
+            raise ValueError(f"Unknown scenario in sequence: {scenario_name}")
+
         return scenario_name
 
-    def _observe_simulated(self) -> PerceptionState:
+    def observe(self) -> PerceptionState:
         scenario_name = self._get_next_scenario_name()
         scenario = self.BUILTIN_SCENARIOS[scenario_name]
 
@@ -106,59 +107,3 @@ class PerceptionModule:
             summary=scenario.summary,
             confidence=scenario.confidence,
         )
-
-    # =========================
-    # CAMERA LOGIC (NEW)
-    # =========================
-
-    def _observe_camera(self) -> PerceptionState:
-        ret, frame = self.cap.read()
-
-        if not ret:
-            return PerceptionState(
-                obstacle_ahead=False,
-                free_direction="none",
-                corridor_visible=False,
-                summary="Camera error",
-                confidence=0.0,
-            )
-
-        frame = cv2.resize(frame, (320, 240))
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 150)
-
-        h, w = edges.shape
-
-        left = edges[:, :w//3].sum()
-        center = edges[:, w//3:2*w//3].sum()
-        right = edges[:, 2*w//3:].sum()
-
-        #threshold = 50000
-        threshold = 5000
-        obstacle = center > threshold
-
-        if obstacle:
-            free = "left" if left < right else "right"
-        else:
-            free = "center"
-
-        print(f"[VISION] L:{left} C:{center} R:{right} → {free}")
-
-        return PerceptionState(
-            obstacle_ahead=obstacle,
-            free_direction=free,
-            corridor_visible=not obstacle,
-            summary=f"L:{left} C:{center} R:{right}",
-            confidence=0.8,
-        )
-
-    # =========================
-    # MAIN ENTRY POINT
-    # =========================
-
-    def observe(self) -> PerceptionState:
-        if self.mode == "camera":
-            return self._observe_camera()
-        else:
-            return self._observe_simulated()

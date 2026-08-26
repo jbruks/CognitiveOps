@@ -8,18 +8,21 @@ def main():
     rover = RoverClient("/dev/ttyACM0")
     rover.connect_and_prepare()
 
-    perception = PerceptionModule(
-        scenario_sequence=[
-            "corridor_forward",
-            "corridor_forward",
-            "obstacle_left_open",
-            "corridor_forward",
-            "obstacle_right_open",
-            "blocked",
-            "uncertain",
-        ],
-        loop_sequence=True,
-    )
+    #perception = PerceptionModule(mode="simulated")
+    perception = PerceptionModule(mode="camera")
+    
+    #perception = PerceptionModule(
+    #    scenario_sequence=[
+    #        "corridor_forward",
+    #        "corridor_forward",
+    #        "obstacle_left_open",
+    #        "corridor_forward",
+    #        "obstacle_right_open",
+    #        "blocked",
+    #        "uncertain",
+    #    ],
+    #    loop_sequence=True,
+    #)
 
     navigator = GuidanceNavigator(
         rover,
