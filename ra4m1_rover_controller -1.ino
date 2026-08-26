@@ -8,11 +8,11 @@ static const int THROTTLE_PIN = 10;
 static const int PWM_CENTER = 1500;
 static const int PWM_STEER_LEFT = 1300;
 static const int PWM_STEER_RIGHT = 1700;
-static const int PWM_THROTTLE_FORWARD = 1600;
+static const int PWM_THROTTLE_FORWARD = 1560;
 
 // ===== Timing config =====
 static const unsigned long FAILSAFE_TIMEOUT_MS = 50000;
-static const unsigned long ACTION_FORWARD_MS = 5000;
+static const unsigned long ACTION_FORWARD_MS = 30000;
 static const unsigned long ACTION_TURN_MS = 220;
 static const unsigned long BOOT_NEUTRAL_MS = 3000;
 
@@ -128,17 +128,6 @@ void handleCommand(const String& cmdRaw) {
     startTimedAction(PWM_STEER_RIGHT, PWM_CENTER, ACTION_TURN_MS, "TURN_RIGHT");
     return;
   }
-
-  if (cmd == "FORWARD_LEFT") {
-    startTimedAction(PWM_STEER_LEFT, PWM_THROTTLE_FORWARD, ACTION_FORWARD_MS, "FORWARD_LEFT");
-    return;
-  }
-
-  if (cmd == "FORWARD_RIGHT") {
-    startTimedAction(PWM_STEER_RIGHT, PWM_THROTTLE_FORWARD, ACTION_FORWARD_MS, "FORWARD_RIGHT");
-    return;
-  }
-  
 
   if (cmd == "GET_STATE") {
     Serial.print("STATE armed=");
