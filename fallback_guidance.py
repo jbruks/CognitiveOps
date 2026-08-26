@@ -1,6 +1,5 @@
 from rover_interfaces import TacticalAction
 
-
 class FallbackGuidance:
     def decide_action(self, rover_state, perception_state):
         if perception_state.confidence < 0.5:

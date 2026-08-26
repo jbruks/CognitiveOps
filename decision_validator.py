@@ -1,9 +1,7 @@
 from rover_interfaces import TacticalAction
 
-
 class DecisionValidationError(Exception):
     pass
-
 
 def parse_llm_response(response_text: str) -> TacticalAction:
     if not response_text:
@@ -19,8 +17,9 @@ def parse_llm_response(response_text: str) -> TacticalAction:
     try:
         return TacticalAction[cleaned]
     except KeyError as exc:
-        raise DecisionValidationError(f"Unsupported action from LLM: {cleaned}") from exc
-
+        raise DecisionValidationError(
+            f"Unsupported action from LLM: {cleaned}"
+        ) from exc
 
 def validate_action(action: TacticalAction, rover_state, perception_state) -> TacticalAction:
     if rover_state.mode not in ("GUIDED", "UNKNOWN"):

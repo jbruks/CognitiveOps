@@ -1,15 +1,6 @@
 from config import LLM_BACKEND
 
-
 class TacticalLLMDecisionMaker:
-    """
-    Minimal LLM decision wrapper.
-
-    Current behavior:
-    - uses a deterministic stub backend so you can integrate the module now
-    - later you can replace _call_backend() with a real LLM API call
-    """
-
     def __init__(self, backend: str = LLM_BACKEND):
         self.backend = backend
 
@@ -19,7 +10,6 @@ class TacticalLLMDecisionMaker:
     def _call_backend(self, prompt: str) -> str:
         if self.backend == "stub":
             return self._stub_response(prompt)
-
         raise RuntimeError(f"Unsupported LLM backend: {self.backend}")
 
     def _stub_response(self, prompt: str) -> str:

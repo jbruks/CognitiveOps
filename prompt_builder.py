@@ -1,13 +1,12 @@
 from config import ALLOWED_ACTIONS, SYSTEM_GOAL
 
-
 def build_tactical_prompt(rover_state, perception_state) -> str:
-    allowed = ", ".join(ALLOWED_ACTIONS)
+    allowed_actions_str = ", ".join(ALLOWED_ACTIONS)
 
     return f"""
-You are the tactical guidance module for an autonomous rover.
+You are the tactical navigation module of an autonomous rover.
 
-Goal:
+Mission goal:
 {SYSTEM_GOAL}
 
 Current rover state:
@@ -25,15 +24,17 @@ Current perception state:
 - confidence: {perception_state.confidence}
 - summary: {perception_state.summary}
 
-Rules:
-- Output exactly one action.
-- Allowed actions: {allowed}
-- If confidence is low, prefer HOLD.
-- If obstacle ahead and left is free, prefer TURN_LEFT.
-- If obstacle ahead and right is free, prefer TURN_RIGHT.
-- If obstacle ahead and no safe path is visible, prefer STOP.
-- If corridor is visible and center is free, prefer MOVE_FORWARD.
+Allowed actions:
+- {allowed_actions_str}
 
-Response format:
+Decision rules:
+- Output exactly one allowed action.
+- If confidence is low, prefer HOLD.
+- If obstacle_ahead is true and free_direction is left, prefer TURN_LEFT.
+- If obstacle_ahead is true and free_direction is right, prefer TURN_RIGHT.
+- If obstacle_ahead is true and no safe path is visible, prefer STOP.
+- If corridor_visible is true and free_direction is center, prefer MOVE_FORWARD.
+
+Output format:
 ACTION=<one allowed action>
 """.strip()

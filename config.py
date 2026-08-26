@@ -1,16 +1,10 @@
 LLM_ENABLED = True
 USE_FALLBACK_ON_ERROR = True
 
-# For now this is a local stub selector.
-# Later you can replace the implementation behind llm_decision.py
-# with OpenAI / Ollama / local model inference.
 LLM_BACKEND = "stub"
 
-#LOOP_DELAY_S = 2.0
-#DEFAULT_STEPS = 12
-
-LOOP_DELAY_S = 20
-DEFAULT_STEPS = 500
+LOOP_DELAY_S = 10
+DEFAULT_STEPS = 25
 
 SYSTEM_GOAL = (
     "Navigate the rover safely using short tactical actions. "
