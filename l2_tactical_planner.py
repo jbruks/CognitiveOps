@@ -41,15 +41,15 @@ class L2TacticalPlanner:
         # 🔢 contador global
         #self.sim_counter = 0
         
-    def decide_action_with_llm(self, rover_state, perception_state, image_bytes):
+    def decide_action_with_llm(self, rover_state, perception_state, image_bytes, l3_task):
         XLogger.log("L2", "Decide action with llm ...")        
-        prompt = build_tactical_prompt(rover_state, perception_state)
+        prompt = build_tactical_prompt(rover_state, perception_state, l3_task)
         raw_response = self.llm.decide_with_image(prompt, image_bytes)
         parsed_action = parse_llm_response(raw_response)
         validated_action = validate_action(parsed_action, rover_state, perception_state)
         return validated_action, raw_response, prompt
 
-    def decide_action(self, rover_state, perception_state, image_bytes):
+    def decide_action(self, rover_state, perception_state, image_bytes, l3_task):
         XLogger.log("L2", "Decide_action...")     
         if not self.llm_enabled:
             fallback_action = self.fallback.decide_action(rover_state, perception_state)
@@ -59,6 +59,7 @@ class L2TacticalPlanner:
                 rover_state,
                 perception_state,
                 image_bytes,
+                l3_task
             )
             return action, raw_response, prompt, "llm"
 
@@ -71,7 +72,7 @@ class L2TacticalPlanner:
 
             raise
 
-    def step(self, rover_state, result):
+    def step(self, rover_state, result, l3_task):
         XLogger.log("L2", "step") 
         
         # 🔢 incrementar contador global
@@ -91,6 +92,7 @@ class L2TacticalPlanner:
             rover_state,
             result.perception_state,
             result.image_bytes,
+            l3_task,
         )        
         #if LLM_DEBUG:
         #    print("\n=== Guidance Step ===")

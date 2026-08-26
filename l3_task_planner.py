@@ -22,10 +22,23 @@ class L3TaskPlanner:
     def step(self, rover_state, result):
         XLogger.log("L3", "step")        
         #mode = self.decide_mode(rover_state, result.perception_state)         NOT NEEDED BY NOW
+        
+        # DE MOMENTO FIJA
+        l3_task = {
+            "task_type": "MOVE_IN_CARDINAL_DIRECTION",
+            "desired_direction": "W",
+            "task_text": "Move generally toward WEST.",
+            "priority": "SAFETY_FIRST"
+        }
+
+
+        
         action, decision_info, prompt, source = self.l2_planner.step(
             rover_state,
-            result
+            result,
+            l3_task
         )
+        
         self.memory.update_step(rover_state, result.perception_state, action)
         return action
 

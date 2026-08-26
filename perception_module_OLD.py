@@ -10,8 +10,6 @@ from rover_interfaces import PerceptionState
 from lite_world_model import WorldBuilder
 from lite_world_model import WorldModel
 
-from sensors.gps_service import GPSService
-
 
 from utils.xlogger import XLogger
 
@@ -32,7 +30,6 @@ class PerceptionResult:
     world_model: object | None = None
     semantic_summary: str = ""
     image_bytes: bytes | None = None
-    gps_state: dict | None = None
 
 
 class PerceptionModule:
@@ -83,28 +80,11 @@ class PerceptionModule:
         default_scenario: str = "corridor_forward",
         scenario_sequence: Optional[List[str]] = None,
         loop_sequence: bool = True,
-        gps_enabled=True
         
     ):
         XLogger.log("PerceptionModule", "__init__")
         self.mode = mode
         self.worldbuilder = WorldBuilder()
-
-        # --- GPS SETUP ---
-        # Perception only reads GPS state. It does not interpret mission, target,
-        # route, progress, or tactical meaning.
-        self.gps_enabled = gps_enabled
-        self.gps = None
-
-        if self.gps_enabled:
-            try:
-                self.gps = GPSService()
-                self.gps.start()
-                XLogger.log("PerceptionModule", "GPSService started")
-            except Exception as exc:
-                self.gps = None
-                self.gps_enabled = False
-                XLogger.log("PerceptionModule", f"GPSService disabled: {exc}")
 
         # --- SIMULATION SETUP ---
         self.default_scenario = default_scenario
@@ -114,20 +94,9 @@ class PerceptionModule:
         self.current_scenario_name = default_scenario
 
         # --- CAMERA SETUP ---
-        
-        
-
-
-        #if self.mode == "camera":
-        #    self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        #    self.cap.set( cv2.CAP_PROP_BUFFERSIZE,1)
-            
-        
-        CAMERA_DEVICE = ("/dev/v4l/by-id/usb-046d_0825_E88EE230-video-index0")
-
         if self.mode == "camera":
-            self.cap = cv2.VideoCapture(CAMERA_DEVICE, cv2.CAP_V4L2)
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)    
+            self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+            self.cap.set( cv2.CAP_PROP_BUFFERSIZE,1)
             
             
             
@@ -210,30 +179,6 @@ class PerceptionModule:
         )
 
     # =========================
-    # GPS LOGIC
-    # =========================
-
-    def _observe_gps(self) -> dict | None:
-        """Read pure GPS state, if GPS is enabled.
-
-        This method does not interpret destination, mission progress, route,
-        or tactical decisions. It only exposes raw/normalized GPS sensor state.
-        """
-        if not self.gps_enabled or self.gps is None:
-            return None
-
-        try:
-            return self.gps.get_state()
-        except Exception as exc:
-            XLogger.log("Perception", f"GPS read error: {exc}")
-            return {
-                "gps_fix_ok": False,
-                "position": None,
-                "reason": f"GPS read error: {exc}",
-            }
-
-
-    # =========================
     # MAIN ENTRY POINT
     # =========================
 
@@ -250,14 +195,9 @@ class PerceptionModule:
         """
         LLM-based perception + image output
         """
-        gps_state = self._observe_gps()
-
         if self.mode != "camera":
             state = self._observe_simulated()
-            return PerceptionResult(
-                perception_state=state,
-                gps_state=gps_state,
-            )
+            return state, None, None, None
             #return state, None
             
         for _ in range(3):
@@ -266,39 +206,36 @@ class PerceptionModule:
         ret, frame = self.cap.read()
 
         if not ret:
-            return PerceptionResult(
-                perception_state=PerceptionState(
+            return (
+                PerceptionState(
                     obstacle_ahead=False,
                     free_direction="none",
                     corridor_visible=False,
                     summary="Camera error",
                     confidence=0.0,
                 ),
-                gps_state=gps_state,
+                None, None, None
             )
         frame = cv2.resize(frame, (320, 240))
         ok, buffer = cv2.imencode(".jpg", frame)
         image_bytes = buffer.tobytes() if ok else None
         if image_bytes is None:
-            return PerceptionResult(
-                perception_state=PerceptionState(
+            return (
+                PerceptionState(
                     obstacle_ahead=False,
                     free_direction="none",
                     corridor_visible=False,
                     summary="Encoding error",
                     confidence=0.0,
                 ),
-                gps_state=gps_state,
+                None,
+                None, None
             )
 
         # 🔴 fallback si no hay LLM
         if self.llm_client is None:
-            state = self._observe_camera(frame)
-            return PerceptionResult(
-                perception_state=state,
-                image_bytes=image_bytes,
-                gps_state=gps_state,
-            )
+            state = self._observe_camera()
+            return state, None, None, image_bytes
 
         # 🧠 LLM percepción
         
@@ -500,7 +437,21 @@ RETURN EXACTLY THIS JSON SCHEMA
 "visible_range_m": 8.0
 },
 
-
+"navigation":
+{
+"recommended_action": "forward | stop | turn_left | turn_right | avoid_obstacle",
+"recommended_direction":
+{
+  "region": "front",
+  "azimuth_deg": 90
+},
+"safe_corridor":
+{
+  "available": true,
+  "center_azimuth_deg": 90,
+  "width_deg": 25,
+  "estimated_clear_distance_m": 3.0
+},
 }
 
 "summary": "Flat paved terrain ahead with sparse grass. Central region is traversable with low collision risk.",
@@ -596,8 +547,7 @@ RETURN EXACTLY THIS JSON SCHEMA
             return PerceptionResult(
                 perception_state=state,
                 world_model=world,
-                image_bytes=image_bytes,
-                gps_state=gps_state)
+                image_bytes=image_bytes)
 
         except Exception as exc:
             XLogger.log("Perception", "After ERROR" + f"[PERCEPTION LLM ERROR] {exc}")
@@ -607,21 +557,5 @@ RETURN EXACTLY THIS JSON SCHEMA
             
             return PerceptionResult(
                 perception_state=state,
-                image_bytes=image_bytes,
-                gps_state=gps_state)
+                image_bytes=image_bytes)
             
-
-
-    def close(self):
-        """Release optional sensor resources owned by PerceptionModule."""
-        if self.gps is not None:
-            try:
-                self.gps.stop()
-            except Exception:
-                pass
-
-        if hasattr(self, "cap") and self.cap is not None:
-            try:
-                self.cap.release()
-            except Exception:
-                pass
