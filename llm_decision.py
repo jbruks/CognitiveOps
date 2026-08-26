@@ -1,4 +1,6 @@
+
 import os
+import base64
 from openai import OpenAI
 from config import LLM_BACKEND, OPENAI_MODEL
 
@@ -61,3 +63,46 @@ class TacticalLLMDecisionMaker:
             return "ACTION=MOVE_FORWARD"
 
         return "ACTION=HOLD"
+        
+    def decide_with_image(self, prompt: str, image_bytes: bytes) -> str:
+        if self.backend == "stub":
+            return self._stub_response(prompt)
+
+        if self.backend == "openai":
+            return self._openai_response_with_image(prompt, image_bytes)
+
+        raise RuntimeError("Unsupported backend")
+        
+    def _openai_response_with_image(self, prompt: str, image_bytes: bytes):
+        if not image_bytes:
+            raise RuntimeError("Image bytes are required for multimodal decision")
+
+        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+        response = self.client.responses.create(
+            model=self.model,
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": prompt,
+                        },
+                        {
+                            "type": "input_image",
+                            "image_url": f"data:image/jpeg;base64,{image_b64}",
+                        },
+                    ],
+                }
+            ],
+            temperature=0,
+            max_output_tokens=20,
+        )
+
+        text = response.output_text.strip()
+
+        if not text:
+            raise RuntimeError("LLM returned empty response")
+
+        return text

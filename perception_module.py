@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+from openai import OpenAI
 import cv2
+import base64
+import json
+import os
 
 from rover_interfaces import PerceptionState
 
@@ -76,6 +80,10 @@ class PerceptionModule:
         # --- CAMERA SETUP ---
         if self.mode == "camera":
             self.cap = cv2.VideoCapture(0)
+            
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            self.llm_client = OpenAI(api_key=api_key)
 
     # =========================
     # SIMULATION LOGIC (UNCHANGED)
@@ -162,3 +170,146 @@ class PerceptionModule:
             return self._observe_camera()
         else:
             return self._observe_simulated()
+
+
+    
+
+    def observe_llm_OLD(self):
+        """
+        Nueva función mínima para pipeline LLM.
+        No rompe nada existente.
+        """
+        if self.mode != "camera":
+            state = self._observe_simulated()
+            return state, None
+
+        ret, frame = self.cap.read()
+        if not ret:
+            return (
+                PerceptionState(
+                    obstacle_ahead=False,
+                    free_direction="none",
+                    corridor_visible=False,
+                    summary="Camera error",
+                    confidence=0.0,
+                ),
+                None,
+            )
+
+        frame = cv2.resize(frame, (320, 240))
+
+        # reutilizamos lógica actual (sin tocar nada)
+        state = self._observe_camera()
+
+        # convertir imagen a bytes
+        ok, buffer = cv2.imencode(".jpg", frame)
+        image_bytes = buffer.tobytes() if ok else None
+
+        return state, image_bytes
+        
+        
+        
+    #################
+
+
+    def observe_llm(self):
+        """
+        LLM-based perception + image output
+        """
+        if self.mode != "camera":
+            state = self._observe_simulated()
+            return state, None
+
+        ret, frame = self.cap.read()
+
+        if not ret:
+            return (
+                PerceptionState(
+                    obstacle_ahead=False,
+                    free_direction="none",
+                    corridor_visible=False,
+                    summary="Camera error",
+                    confidence=0.0,
+                ),
+                None,
+            )
+
+        frame = cv2.resize(frame, (320, 240))
+
+        ok, buffer = cv2.imencode(".jpg", frame)
+        image_bytes = buffer.tobytes() if ok else None
+
+        if image_bytes is None:
+            return (
+                PerceptionState(
+                    obstacle_ahead=False,
+                    free_direction="none",
+                    corridor_visible=False,
+                    summary="Encoding error",
+                    confidence=0.0,
+                ),
+                None,
+            )
+
+        # 🔴 fallback si no hay LLM
+        if self.llm_client is None:
+            state = self._observe_camera()
+            return state, image_bytes
+
+        # 🧠 LLM percepción
+        perception_prompt = """
+    You are the perception layer of an autonomous rover.
+
+    Analyze the image and return ONLY valid JSON:
+
+    {
+      "obstacle_ahead": true,
+      "free_direction": "left",
+      "corridor_visible": false,
+      "summary": "short navigation summary",
+      "confidence": 0.8
+    }
+
+    Rules:
+    - Be conservative
+    - Focus on obstacles and traversability
+    """
+
+        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+        try:
+            response = self.llm_client.responses.create(
+                model="gpt-5.4",
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": perception_prompt},
+                            {"type": "input_image", "image_url": f"data:image/jpeg;base64,{image_b64}"},
+                        ],
+                    }
+                ],
+                temperature=0,
+                max_output_tokens=200,
+            )
+
+            text = response.output_text.strip()
+
+            data = json.loads(text)
+
+            state = PerceptionState(
+                obstacle_ahead=bool(data.get("obstacle_ahead", False)),
+                free_direction=str(data.get("free_direction", "none")),
+                corridor_visible=bool(data.get("corridor_visible", False)),
+                summary=str(data.get("summary", "")),
+                confidence=float(data.get("confidence", 0.0)),
+            )
+
+            return state, image_bytes
+
+        except Exception as exc:
+            print(f"[PERCEPTION LLM ERROR] {exc}")
+
+            # fallback a visión clásica
+            state = self._observe_camera()
+            return state, image_bytes
