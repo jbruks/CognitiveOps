@@ -19,6 +19,7 @@ class RoverClient:
       MOVE_FORWARD         -> ACK MOVE_FORWARD
       FORWARD_LEFT            -> ACK FORWARD_LEFT
       FORWARD_RIGHT           -> ACK FORWARD_RIGHT
+      MOVE_BACKWARD           -> ACK MOVE_BACKWARD
       GET_STATE            -> STATE armed=1 mode=GUIDED speed_m_s=0 heading_deg=0 x=0 y=0
 
     Notes:

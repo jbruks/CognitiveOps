@@ -12,7 +12,7 @@ static const int PWM_CENTER_STEER = 1450;
 static const int PWM_STEER_LEFT = 1200;
 static const int PWM_STEER_RIGHT = 1700;
 static const int PWM_THROTTLE_FORWARD = 1580;
-static const int PWM_THROTTLE_BACKWARD = 1450;
+static const int PWM_THROTTLE_BACKWARD = 1400;
 
 // ===== Timing config =====
 static const unsigned long FAILSAFE_TIMEOUT_MS = 5000;

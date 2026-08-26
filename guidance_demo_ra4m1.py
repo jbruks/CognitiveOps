@@ -5,6 +5,8 @@ from guidance_navigator import GuidanceNavigator
 
 
 def main():
+    print("[MAIN] Starting guidance system")
+    
     rover = RoverClient("/dev/ttyACM0")
     rover.connect_and_prepare()
 
@@ -30,6 +32,9 @@ def main():
         llm_enabled=True,
         fallback_enabled=True,
     )
+    
+    print("[MAIN] Rover + Perception + Navigator initialized")
+    
     navigator.run_loop(steps=DEFAULT_STEPS, delay_s=LOOP_DELAY_S)
 
 

@@ -1,6 +1,9 @@
 from config import ALLOWED_ACTIONS, SYSTEM_GOAL
 
 
+
+from config import ALLOWED_ACTIONS, SYSTEM_GOAL
+
 def build_tactical_prompt(rover_state, perception_state) -> str:
     allowed_actions_str = ", ".join(ALLOWED_ACTIONS)
 

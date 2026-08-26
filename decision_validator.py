@@ -13,6 +13,9 @@ def parse_llm_response(response_text: str) -> TacticalAction:
         cleaned = cleaned.split("=", 1)[1].strip()
 
     cleaned = cleaned.upper()
+    
+    print(f"[PARSER] Raw LLM text: {response_text}")
+    print(f"[PARSER] Cleaned: {cleaned}")
 
     try:
         return TacticalAction[cleaned]
@@ -22,6 +25,7 @@ def parse_llm_response(response_text: str) -> TacticalAction:
         ) from exc
 
 def validate_action(action: TacticalAction, rover_state, perception_state) -> TacticalAction:
+    print(f"[VALIDATION] Checking action {action} | mode={rover_state.mode} armed={rover_state.armed} confidence={perception_state.confidence}")
     if rover_state.mode not in ("GUIDED", "UNKNOWN"):
         if action in (
             TacticalAction.MOVE_FORWARD,
