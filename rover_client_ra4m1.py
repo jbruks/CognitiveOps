@@ -17,8 +17,8 @@ class RoverClient:
       STOP                 -> ACK STOP
       HOLD                 -> ACK HOLD
       MOVE_FORWARD         -> ACK MOVE_FORWARD
-      TURN_LEFT            -> ACK TURN_LEFT
-      TURN_RIGHT           -> ACK TURN_RIGHT
+      FORWARD_LEFT            -> ACK FORWARD_LEFT
+      FORWARD_RIGHT           -> ACK FORWARD_RIGHT
       GET_STATE            -> STATE armed=1 mode=GUIDED speed_m_s=0 heading_deg=0 x=0 y=0
 
     Notes:
@@ -99,8 +99,8 @@ class RoverClient:
 
         command_map = {
             TacticalAction.MOVE_FORWARD: "MOVE_FORWARD",
-            TacticalAction.TURN_LEFT: "FORWARD_LEFT",
-            TacticalAction.TURN_RIGHT: "FORWARD_RIGHT",
+            TacticalAction.FORWARD_LEFT: "FORWARD_LEFT",
+            TacticalAction.FORWARD_RIGHT: "FORWARD_RIGHT",
             TacticalAction.STOP: "STOP",
             TacticalAction.HOLD: "HOLD",
         }

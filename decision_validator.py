@@ -25,8 +25,8 @@ def validate_action(action: TacticalAction, rover_state, perception_state) -> Ta
     if rover_state.mode not in ("GUIDED", "UNKNOWN"):
         if action in (
             TacticalAction.MOVE_FORWARD,
-            TacticalAction.TURN_LEFT,
-            TacticalAction.TURN_RIGHT,
+            TacticalAction.FORWARD_LEFT,
+            TacticalAction.FORWARD_RIGHT,
         ):
             raise DecisionValidationError(
                 f"Unsafe action {action.value}: rover mode is {rover_state.mode}"
@@ -34,8 +34,8 @@ def validate_action(action: TacticalAction, rover_state, perception_state) -> Ta
 
     if not rover_state.armed and action in (
         TacticalAction.MOVE_FORWARD,
-        TacticalAction.TURN_LEFT,
-        TacticalAction.TURN_RIGHT,
+        TacticalAction.FORWARD_LEFT,
+        TacticalAction.FORWARD_RIGHT,
     ):
         raise DecisionValidationError(
             f"Unsafe action {action.value}: rover is not armed"
