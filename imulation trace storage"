@@ -1,0 +1,95 @@
+[1mdiff --git a/guidance_navigator.py b/guidance_navigator.py[m
+[1mindex 71c67dc..bcbbb14 100755[m
+[1m--- a/guidance_navigator.py[m
+[1m+++ b/guidance_navigator.py[m
+[36m@@ -1,4 +1,6 @@[m
+[32m+[m[32mimport os[m
+ import time[m
+[32m+[m[32mimport datetime[m
+ [m
+ from config import LLM_ENABLED, USE_FALLBACK_ON_ERROR[m
+ from config import LLM_DEBUG[m
+[36m@@ -28,8 +30,24 @@[m [mclass GuidanceNavigator:[m
+ [m
+         self.llm = TacticalLLMDecisionMaker()[m
+         self.fallback = FallbackGuidance()[m
+[32m+[m
+[32m+[m[41m    [m
+[32m+[m[32m         # 📁 carpeta única por ejecución[m
+[32m+[m[32m        run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")[m
+[32m+[m[32m        self.output_dir = f"simulaciones/{run_id}"[m
+[32m+[m[32m        os.makedirs(self.output_dir, exist_ok=True)[m
+[32m+[m
+[32m+[m[32m        # 🔢 contador global[m
+[32m+[m[32m        self.sim_counter = 0[m
+         [m
+     def decide_action_with_llm(self, rover_state, perception_state, image_bytes):[m
+[32m+[m
+[32m+[m
+[32m+[m[41m       [m
+[32m+[m
+[32m+[m[41m       [m
+[32m+[m[41m    [m
+[32m+[m[41m    [m
+         print("[LLM] Building prompt...")[m
+         prompt = build_tactical_prompt(rover_state, perception_state)[m
+         raw_response = self.llm.decide_with_image(prompt, image_bytes)[m
+[36m@@ -48,6 +66,25 @@[m [mclass GuidanceNavigator:[m
+         return validated_action, raw_response, prompt[m
+         [m
+     def decide_action(self, rover_state, perception_state, image_bytes):[m
+[32m+[m[41m    [m
+[32m+[m[32m        # 🔢 contador[m
+[32m+[m[32m        self.sim_counter += 1[m
+[32m+[m[32m        sim_id = self.sim_counter[m
+[32m+[m
+[32m+[m[32m        print(f"\n[SIM {sim_id:04d}] =========================")[m
+[32m+[m
+[32m+[m[32m        # 💾 guardar imagen[m
+[32m+[m[32m        if image_bytes is not None:[m
+[32m+[m[32m            filename = f"{sim_id:04d}.jpg"[m
+[32m+[m[32m            filepath = os.path.join(self.output_dir, filename)[m
+[32m+[m
+[32m+[m[32m            with open(filepath, "wb") as f:[m
+[32m+[m[32m                f.write(image_bytes)[m
+[32m+[m
+[32m+[m[32m            print(f"[SIM {sim_id:04d}] Image saved → {filepath}")[m
+[32m+[m[32m        else:[m
+[32m+[m[32m            print(f"[SIM {sim_id:04d}] No image captured")[m
+[32m+[m[41m        [m
+         if not self.llm_enabled:[m
+             fallback_action = self.fallback.decide_action(rover_state, perception_state)[m
+             return fallback_action, "FALLBACK_ONLY", None, "fallback"[m
+[36m@@ -93,12 +130,31 @@[m [mclass GuidanceNavigator:[m
+             raise[m
+ [m
+     def step(self):[m
+[31m-        print("[STEP] New Step")[m
+[32m+[m[32m        # 🔢 incrementar contador global[m
+[32m+[m[32m        self.sim_counter += 1[m
+[32m+[m[32m        sim_id = self.sim_counter[m
+[32m+[m[41m    [m
+[32m+[m[32m        print(f"\n==============================")[m
+[32m+[m[32m        print(f"[SIM {sim_id:04d}] NEW STEP")[m
+[32m+[m[32m        print(f"==============================")[m
+         print("[STEP] Getting rover state...")[m
+         rover_state = self.rover_client.get_state()[m
+         print("[STEP] Getting perception state...")[m
+         perception_state, image_bytes = self.perception_module.observe_llm()[m
+         [m
+[32m+[m[32m        # 💾 guardar imagen[m
+[32m+[m[32m        if image_bytes is not None:[m
+[32m+[m[32m            filename = f"{sim_id:04d}.jpg"[m
+[32m+[m[32m            filepath = os.path.join(self.output_dir, filename)[m
+[32m+[m
+[32m+[m
+[32m+[m[32m        with open(filepath, "wb") as f:[m
+[32m+[m[32m            f.write(image_bytes)[m
+[32m+[m[41m        [m
+[32m+[m[32m        print(f"[SIM {sim_id:04d}] Image saved → {filepath}")[m
+[32m+[m
+[32m+[m[32m        print(f"[SIM {sim_id:04d}] Image saved → {filepath}")[m
+[32m+[m[41m        [m
+         print("[STEP] Deciding action...")[m
+         action, decision_info, prompt, source = self.decide_action([m
+             rover_state,[m

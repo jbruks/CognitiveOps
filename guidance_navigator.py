@@ -1,4 +1,6 @@
+import os
 import time
+import datetime
 
 from config import LLM_ENABLED, USE_FALLBACK_ON_ERROR
 from config import LLM_DEBUG
@@ -28,8 +30,24 @@ class GuidanceNavigator:
 
         self.llm = TacticalLLMDecisionMaker()
         self.fallback = FallbackGuidance()
+
+    
+         # 📁 carpeta única por ejecución
+        run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.output_dir = f"simulaciones/{run_id}"
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        # 🔢 contador global
+        self.sim_counter = 0
         
     def decide_action_with_llm(self, rover_state, perception_state, image_bytes):
+
+
+       
+
+       
+    
+    
         print("[LLM] Building prompt...")
         prompt = build_tactical_prompt(rover_state, perception_state)
         raw_response = self.llm.decide_with_image(prompt, image_bytes)
@@ -48,6 +66,25 @@ class GuidanceNavigator:
         return validated_action, raw_response, prompt
         
     def decide_action(self, rover_state, perception_state, image_bytes):
+    
+        # 🔢 contador
+        self.sim_counter += 1
+        sim_id = self.sim_counter
+
+        print(f"\n[SIM {sim_id:04d}] =========================")
+
+        # 💾 guardar imagen
+        if image_bytes is not None:
+            filename = f"{sim_id:04d}.jpg"
+            filepath = os.path.join(self.output_dir, filename)
+
+            with open(filepath, "wb") as f:
+                f.write(image_bytes)
+
+            print(f"[SIM {sim_id:04d}] Image saved → {filepath}")
+        else:
+            print(f"[SIM {sim_id:04d}] No image captured")
+        
         if not self.llm_enabled:
             fallback_action = self.fallback.decide_action(rover_state, perception_state)
             return fallback_action, "FALLBACK_ONLY", None, "fallback"
@@ -93,11 +130,30 @@ class GuidanceNavigator:
             raise
 
     def step(self):
-        print("[STEP] New Step")
+        # 🔢 incrementar contador global
+        self.sim_counter += 1
+        sim_id = self.sim_counter
+    
+        print(f"\n==============================")
+        print(f"[SIM {sim_id:04d}] NEW STEP")
+        print(f"==============================")
         print("[STEP] Getting rover state...")
         rover_state = self.rover_client.get_state()
         print("[STEP] Getting perception state...")
         perception_state, image_bytes = self.perception_module.observe_llm()
+        
+        # 💾 guardar imagen
+        if image_bytes is not None:
+            filename = f"{sim_id:04d}.jpg"
+            filepath = os.path.join(self.output_dir, filename)
+
+
+        with open(filepath, "wb") as f:
+            f.write(image_bytes)
+        
+        print(f"[SIM {sim_id:04d}] Image saved → {filepath}")
+
+        print(f"[SIM {sim_id:04d}] Image saved → {filepath}")
         
         print("[STEP] Deciding action...")
         action, decision_info, prompt, source = self.decide_action(

@@ -10,3 +10,10 @@ env/
 # Editor / OS temporary files
 *~
 .DS_Store
+*.jpg
+*.jpg
+*.jpeg
+*.JPG
+*.JPEG
+sim01
+sim02
