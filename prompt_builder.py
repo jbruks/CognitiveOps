@@ -1,9 +1,6 @@
 from config import ALLOWED_ACTIONS, SYSTEM_GOAL
 
 
-
-from config import ALLOWED_ACTIONS, SYSTEM_GOAL
-
 def build_tactical_prompt(rover_state, perception_state) -> str:
     allowed_actions_str = ", ".join(ALLOWED_ACTIONS)
 
@@ -52,8 +49,8 @@ Heuristics (use as guidance, not strict rules):
 - If obstacle ahead and left is clearer → FORWARD_LEFT
 - If obstacle ahead and right is clearer → FORWARD_RIGHT
 - If path ahead is clear → MOVE_FORWARD
-- If no safe path → STOP
-- If perception confidence is low → consider HOLD
+- If blocked and no safe path → MOVE_BACKWARD
+- If perception confidence is low → MOVE_BACKWARD
 
 Output format:
 ACTION=<one allowed action>
@@ -89,10 +86,9 @@ Allowed actions:
 
 Decision rules:
 - Output exactly one allowed action.
-- If confidence is low, prefer HOLD.
 - If obstacle_ahead is true and free_direction is left, prefer FORWARD_LEFT.
 - If obstacle_ahead is true and free_direction is right, prefer FORWARD_RIGHT.
-- If obstacle_ahead is true and no safe path is visible, prefer STOP.
+- If obstacle_ahead is true and no safe path is visible, prefer MOVE_BACKWARD.
 - If corridor_visible is true and free_direction is center, prefer MOVE_FORWARD.
 
 Output format:

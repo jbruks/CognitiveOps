@@ -10,7 +10,7 @@ class FallbackGuidance:
                 return TacticalAction.FORWARD_LEFT
             if perception_state.free_direction == "right":
                 return TacticalAction.FORWARD_RIGHT
-            return TacticalAction.STOP
+            return TacticalAction.MOVE_BACKWARD
 
         if perception_state.corridor_visible and perception_state.free_direction == "center":
             return TacticalAction.MOVE_FORWARD

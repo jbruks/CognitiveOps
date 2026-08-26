@@ -213,6 +213,7 @@ class PerceptionModule:
 
 
     def observe_llm(self):
+        print("[PERCEPTION] Capturing frame...")
         """
         LLM-based perception + image output
         """
@@ -238,6 +239,7 @@ class PerceptionModule:
 
         ok, buffer = cv2.imencode(".jpg", frame)
         image_bytes = buffer.tobytes() if ok else None
+        print(f"[PERCEPTION] Image bytes: {'OK' if image_bytes else 'FAIL'}")
 
         if image_bytes is None:
             return (
@@ -276,7 +278,8 @@ class PerceptionModule:
     """
 
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
+        
+        print("[PERCEPTION] Calling LLM for perception...")
         try:
             response = self.llm_client.responses.create(
                 model="gpt-5.4",
@@ -294,7 +297,9 @@ class PerceptionModule:
             )
 
             text = response.output_text.strip()
-
+            
+            print(f"[PERCEPTION] LLM raw response: {text}")
+            
             data = json.loads(text)
 
             state = PerceptionState(
@@ -304,7 +309,7 @@ class PerceptionModule:
                 summary=str(data.get("summary", "")),
                 confidence=float(data.get("confidence", 0.0)),
             )
-
+            
             return state, image_bytes
 
         except Exception as exc:

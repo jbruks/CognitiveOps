@@ -101,6 +101,7 @@ class RoverClient:
             TacticalAction.MOVE_FORWARD: "MOVE_FORWARD",
             TacticalAction.FORWARD_LEFT: "FORWARD_LEFT",
             TacticalAction.FORWARD_RIGHT: "FORWARD_RIGHT",
+            TacticalAction.MOVE_BACKWARD: "MOVE_BACKWARD",
             TacticalAction.STOP: "STOP",
             TacticalAction.HOLD: "HOLD",
         }

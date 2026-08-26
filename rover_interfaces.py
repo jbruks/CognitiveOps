@@ -7,6 +7,7 @@ class TacticalAction(Enum):
     FORWARD_RIGHT = "FORWARD_RIGHT"
     #TURN_LEFT = "FORWARD_LEFT"
     #TURN_RIGHT = "FORWARD_RIGHT"
+    MOVE_BACKWARD = "MOVE_BACKWARD" 
     STOP = "STOP"
     HOLD = "HOLD"
 

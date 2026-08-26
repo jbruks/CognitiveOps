@@ -12,13 +12,14 @@ SYSTEM_GOAL = (
     "Navigate the rover safely using short tactical actions. "
     "Prefer forward motion when the corridor is clear. "
     "Turn only when needed to avoid obstacles. "
-    "Stop or hold when uncertain."
+    "Stop, hold, OR move backward when uncertain."
 )
 
 ALLOWED_ACTIONS = [
     "MOVE_FORWARD",
     "FORWARD_LEFT",
     "FORWARD_RIGHT",
+    "MOVE_BACKWARD",
     "STOP",
     "HOLD",
 ]

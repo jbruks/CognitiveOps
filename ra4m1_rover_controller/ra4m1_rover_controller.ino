@@ -11,12 +11,13 @@ static const int PWM_CENTER_STEER = 1450;
 
 static const int PWM_STEER_LEFT = 1200;
 static const int PWM_STEER_RIGHT = 1700;
-//static const int PWM_THROTTLE_FORWARD = 1600;
 static const int PWM_THROTTLE_FORWARD = 1580;
+static const int PWM_THROTTLE_BACKWARD = 1450;
 
 // ===== Timing config =====
-static const unsigned long FAILSAFE_TIMEOUT_MS = 50000;
-static const unsigned long ACTION_FORWARD_MS = 5000;
+static const unsigned long FAILSAFE_TIMEOUT_MS = 5000;
+static const unsigned long ACTION_FORWARD_MS = 3000;
+static const unsigned long ACTION_BACKWARD_MS = 3000;
 static const unsigned long ACTION_TURN_MS = 200;
 static const unsigned long BOOT_NEUTRAL_MS = 3000;
 
@@ -128,7 +129,16 @@ void startTimedAction(int steerUs, int throttleUs, unsigned long durationMs, con
 
   //applyOutputs(steerUs, throttleUs);
 
-  setTargets(steerUs, throttleUs);
+  if (strcmp(actionName, "MOVE_BACKWARD") == 0) {
+    // Paso 1: neutro
+    setTargets(PWM_CENTER_STEER, PWM_CENTER);
+    delay(300);
+
+    // Paso 2: marcha atrás
+    setTargets(steerUs, throttleUs);
+  } else {
+    setTargets(steerUs, throttleUs);
+  }
   
   actionActive = true;
   actionEndMs = millis() + durationMs;
@@ -192,6 +202,11 @@ void handleCommand(const String& cmdRaw) {
 
   if (cmd == "MOVE_FORWARD") {
     startTimedAction(PWM_CENTER_STEER, PWM_THROTTLE_FORWARD, ACTION_FORWARD_MS, "MOVE_FORWARD");
+    return;
+  }
+
+  if (cmd == "MOVE_BACKWARD") {
+    startTimedAction(PWM_CENTER_STEER, PWM_THROTTLE_BACKWARD, ACTION_BACKWARD_MS, "MOVE_BACKWARD");
     return;
   }
 
