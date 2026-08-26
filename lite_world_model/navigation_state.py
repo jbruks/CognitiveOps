@@ -5,7 +5,6 @@ from dataclasses import dataclass
 class NavigationState:
     best_direction: str = "forward"
     risk_level: float = 0.5
-
     left_traversability: float = 0.5
     center_traversability: float = 0.5
     right_traversability: float = 0.5

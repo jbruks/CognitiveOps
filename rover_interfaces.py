@@ -31,3 +31,4 @@ class PerceptionState:
     confidence: float = 1.0
     objects: list = field(default_factory=list)
     regions: list = field(default_factory=list)
+    perception_prompt_result: str = ""

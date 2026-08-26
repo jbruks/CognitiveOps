@@ -12,7 +12,6 @@ from utils.xlogger import XLogger
 
 class L3TaskPlanner:
     world = WorldModel
-    
     def __init__(self, l2_planner, perception_module, memory_system, llm_service=None):
         self.l2_planner = l2_planner
         self.perception = perception_module
@@ -20,36 +19,19 @@ class L3TaskPlanner:
         self.llm = llm_service or LLMService()
         self.current_mode = "EXPLORE"
 
-    def step(self, rover_state):
-        #print("[L3] Step")
-        XLogger.log("L3", "Step")
-        
-        #perception_state, image_bytes = self.perception.observe_llm()
-        result = self.perception.observe_llm()
-        perception_state=result.perception_state
-        image_bytes=result.image_bytes
-        world = result.world_model
-        #perception_state, image_bytes, pr, world = self.perception.observe_llm()
-        
-        #XLogger.log("L3", perception_result)
-        
-        mode = self.decide_mode(rover_state, result.perception_state)
-
+    def step(self, rover_state, result):
+        XLogger.log("L3", "step")        
+        #mode = self.decide_mode(rover_state, result.perception_state)         NOT NEEDED BY NOW
         action, decision_info, prompt, source = self.l2_planner.step(
             rover_state,
-            result.perception_state,
-            #image_bytes,
-            result.image_bytes,
+            result
         )
-
         self.memory.update_step(rover_state, result.perception_state, action)
-
         return action
 
-    def decide_mode(self, rover_state, perception_state):
-        #print("[L3] decide_mode (LLM)")
-        XLogger.log("L3", "decide_mode (LLM)")
 
+    def decide_mode(self, rover_state, perception_state):
+        XLogger.log("L3", "decide_mode (LLM)")
         # =========================
         # 1. Construir contexto desde memoria
         # =========================
@@ -58,37 +40,25 @@ class L3TaskPlanner:
             rover_state,
             perception_state,
         )
-
         # =========================
         # 2. Construir prompt
         # =========================
         prompt = L3TaskPromptBuilder().build(context)
-
-        #print("[L3] Prompt:\n", prompt)
-
         # =========================
         # 3. Llamar al LLM
         # =========================
         response = self.llm.decide_task_mode(prompt)
-
-        #print("[L3] Raw response:", response)
-
         # =========================
         # 4. Parsear y validar
         # =========================
         mode = parse_mode(response)
         mode = validate_mode(mode)
-
-        #print("[L3] Final mode:", mode)
-
         return mode
 
     def call_llm_for_mode(self, context):
-        #print("[L3] call_llm_for_mode")
         XLogger.log("L3", "call_llm_for_mode")
         return "EXPLORE"
 
     def detect_stuck(self):
-        #print("[L3] detect_stuck")
         XLogger.log("L3", "detect_stuck")
         return False

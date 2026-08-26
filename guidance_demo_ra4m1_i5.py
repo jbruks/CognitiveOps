@@ -53,17 +53,17 @@ def main():
     # =========================
     l4 = L4MissionPlanner(
         l1_rover_controler=l1_rover_controler,
+        perception_module=perception,
         task_planner=l3,
         memory_system=memory,
     )
 
-    #print("[MAIN] Stack initialized (L4 → L3 → L2 → L1)")
     XLogger.log("MAIN", "Full autonomy stack initialized (L4 → L3 → L2 → L1)")
     
     # =========================
     # RUN LOOP
     # =========================
-    l4.run_loop(steps=3, delay_s=0)
+    l4.run_loop(steps=5, delay_s=0)
 
 
 if __name__ == "__main__":

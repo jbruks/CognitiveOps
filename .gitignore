@@ -17,3 +17,11 @@ env/
 *.JPEG
 sim01
 sim02
+*.swp
+*.swo
+*.log
+log.txt
+*.swp
+*.swo
+*.log
+log.txt
