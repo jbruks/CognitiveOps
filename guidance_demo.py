@@ -1,3 +1,4 @@
+from config import DEFAULT_STEPS, LOOP_DELAY_S
 from rover_client import RoverClient
 from perception_module import PerceptionModule
 from guidance_navigator import GuidanceNavigator
@@ -20,9 +21,13 @@ def main():
         loop_sequence=True,
     )
 
-    navigator = GuidanceNavigator(rover, perception)
-    #navigator.run_loop(steps=12, delay_s=2.0)
-    navigator.run_loop(steps=500, delay_s=25)
+    navigator = GuidanceNavigator(
+        rover,
+        perception,
+        llm_enabled=True,
+        fallback_enabled=True,
+    )
+    navigator.run_loop(steps=DEFAULT_STEPS, delay_s=LOOP_DELAY_S)
 
 
 if __name__ == "__main__":

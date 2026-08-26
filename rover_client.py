@@ -90,8 +90,8 @@ class RoverClient:
         print(f"Executing tactical action: {action.value}")
 
         if action == TacticalAction.MOVE_FORWARD:
-            #self.move_forward(distance_m=1.5, speed_m_s=0.5)
-            self.move_forward(distance_m=1000, speed_m_s=10)
+            #self.move_forward(distance_m=1, speed_m_s=0.5)
+            self.move_forward(distance_m=100, speed_m_s=5)
 
         elif action == TacticalAction.TURN_LEFT:
             self.turn_relative(angle_deg=-20.0)

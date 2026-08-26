@@ -5,7 +5,7 @@ from guidance_navigator import GuidanceNavigator
 
 class DummyRoverClient:
     def get_state(self):
-        return RoverState()
+        return RoverState(armed=True, mode="GUIDED")
 
     def execute_tactical_action(self, action):
         print(f"EXECUTE -> {action.value}")
@@ -23,7 +23,12 @@ def main():
         ],
         loop_sequence=False,
     )
-    navigator = GuidanceNavigator(rover, perception)
+    navigator = GuidanceNavigator(
+        rover,
+        perception,
+        llm_enabled=True,
+        fallback_enabled=True,
+    )
 
     for _ in range(5):
         navigator.step()

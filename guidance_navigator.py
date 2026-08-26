@@ -1,38 +1,79 @@
 import time
 
-from rover_interfaces import TacticalAction
+from config import LLM_ENABLED, USE_FALLBACK_ON_ERROR
+from decision_validator import (
+    DecisionValidationError,
+    parse_llm_response,
+    validate_action,
+)
+from fallback_guidance import FallbackGuidance
+from llm_decision import TacticalLLMDecisionMaker
+from prompt_builder import build_tactical_prompt
 
 
 class GuidanceNavigator:
-    def __init__(self, rover_client, perception_module):
+    def __init__(
+        self,
+        rover_client,
+        perception_module,
+        llm_enabled: bool = LLM_ENABLED,
+        fallback_enabled: bool = USE_FALLBACK_ON_ERROR,
+    ):
         self.rover_client = rover_client
         self.perception_module = perception_module
+        self.llm_enabled = llm_enabled
+        self.fallback_enabled = fallback_enabled
+
+        self.llm = TacticalLLMDecisionMaker()
+        self.fallback = FallbackGuidance()
+
+    def decide_action_with_llm(self, rover_state, perception_state):
+        prompt = build_tactical_prompt(rover_state, perception_state)
+        raw_response = self.llm.decide(prompt)
+        parsed_action = parse_llm_response(raw_response)
+        validated_action = validate_action(parsed_action, rover_state, perception_state)
+        return validated_action, raw_response, prompt
 
     def decide_action(self, rover_state, perception_state):
-        if perception_state.confidence < 0.5:
-            return TacticalAction.HOLD
+        if not self.llm_enabled:
+            fallback_action = self.fallback.decide_action(rover_state, perception_state)
+            return fallback_action, "FALLBACK_ONLY", None, "fallback"
 
-        if perception_state.obstacle_ahead:
-            if perception_state.free_direction == "left":
-                return TacticalAction.TURN_LEFT
-            if perception_state.free_direction == "right":
-                return TacticalAction.TURN_RIGHT
-            return TacticalAction.STOP
+        try:
+            action, raw_response, prompt = self.decide_action_with_llm(
+                rover_state,
+                perception_state,
+            )
+            return action, raw_response, prompt, "llm"
 
-        if perception_state.corridor_visible and perception_state.free_direction == "center":
-            return TacticalAction.MOVE_FORWARD
+        except (DecisionValidationError, RuntimeError, ValueError) as exc:
+            print(f"[GUIDANCE] LLM decision failed: {exc}")
 
-        return TacticalAction.HOLD
+            if self.fallback_enabled:
+                fallback_action = self.fallback.decide_action(rover_state, perception_state)
+                return fallback_action, f"FALLBACK_AFTER_ERROR: {exc}", None, "fallback"
+
+            raise
 
     def step(self):
         rover_state = self.rover_client.get_state()
         perception_state = self.perception_module.observe()
-        action = self.decide_action(rover_state, perception_state)
+
+        action, decision_info, prompt, source = self.decide_action(
+            rover_state,
+            perception_state,
+        )
 
         print("\n=== Guidance Step ===")
         print(f"Rover state: {rover_state}")
         print(f"Perception: {perception_state}")
+        print(f"Decision source: {source}")
+        print(f"Decision info: {decision_info}")
         print(f"Chosen action: {action.value}")
+
+        if prompt is not None:
+            print("--- LLM Prompt ---")
+            print(prompt)
 
         self.rover_client.execute_tactical_action(action)
 
