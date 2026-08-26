@@ -1,21 +1,16 @@
 from l1_rover_controler_ra4m1 import L1RoverControler
 from perception_module import PerceptionModule
 from l2_tactical_planner import L2TacticalPlanner
-
 from memory_system import MemorySystem
 from l3_task_planner import L3TaskPlanner
 from l4_mission_planner import L4MissionPlanner
-
 from lite_world_model import WorldBuilder
-
 from utils.xlogger import XLogger
-
 
 def main():
     #print("[MAIN] Starting full autonomy stack")
     #print("___________________________________")
-    XLogger.log("[MAIN] ", "Starting full autonomy stack")
-    XLogger.log("[MAIN] ", "___________________________________")
+    XLogger.log("MAIN", "Full autonomy stack initialization")
 
     # =========================
     # L1 — Rover (RA4M1)
@@ -63,9 +58,8 @@ def main():
     )
 
     #print("[MAIN] Stack initialized (L4 → L3 → L2 → L1)")
-    XLogger.log("[MAIN] ", "Stack initialized (L4 → L3 → L2 → L1)")
+    XLogger.log("MAIN", "Full autonomy stack initialized (L4 → L3 → L2 → L1)")
     
-     
     # =========================
     # RUN LOOP
     # =========================

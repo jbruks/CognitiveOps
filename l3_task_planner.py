@@ -3,34 +3,42 @@ from llm.l3_task_prompt import L3TaskPromptBuilder
 from llm.l3_task_parser import parse_mode, validate_mode
 from llm.llm_service import LLMService
 
+from perception_module import PerceptionResult
+
+from lite_world_model import WorldBuilder
+from lite_world_model import WorldModel
 from utils.xlogger import XLogger
 
 
 class L3TaskPlanner:
+    world = WorldModel
+    
     def __init__(self, l2_planner, perception_module, memory_system, llm_service=None):
         self.l2_planner = l2_planner
         self.perception = perception_module
         self.memory = memory_system
         self.llm = llm_service or LLMService()
-
         self.current_mode = "EXPLORE"
 
     def step(self, rover_state):
         #print("[L3] Step")
         XLogger.log("L3", "Step")
         
-
-        perception_state, image_bytes = self.perception.observe_llm()
-
-        mode = self.decide_mode(rover_state, perception_state)
+        #perception_state, image_bytes = self.perception.observe_llm()
+        perception_state, image_bytes, pr, world = self.perception.observe_llm()
+        
+        #XLogger.log("L3", perception_result)
+        
+        mode = self.decide_mode(rover_state, pr.perception_state)
 
         action, decision_info, prompt, source = self.l2_planner.step(
             rover_state,
-            perception_state,
-            image_bytes,
+            pr.perception_state,
+            #image_bytes,
+            pr.image_bytes,
         )
 
-        self.memory.update_step(rover_state, perception_state, action)
+        self.memory.update_step(rover_state, pr.perception_state, action)
 
         return action
 

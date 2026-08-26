@@ -16,7 +16,8 @@ class L4MissionPlanner:
         XLogger.log("L4", "Starting mission loop")
         for i in range(steps):
             #print(f"\n[L4] Step {i+1}/{steps}")
-            XLogger.log("L4", f"\n[L4] Step {i+1}/{steps}")
+            #XLogger.log("L4", f"\n[L4] Step {i+1}/{steps}")
+            XLogger.log("L4", f"run_loop {i+1}/{steps}")
             self.step()
             time.sleep(delay_s)
 
@@ -25,9 +26,7 @@ class L4MissionPlanner:
         XLogger.log("L4", "step")
 
         rover_state = self.l1_rover_controler.get_state()
-
         task = self.decide_task(rover_state)
-
         action = self.task_planner.step(rover_state)
 
         #self.l1_rover_controler.execute_tactical_action(action)

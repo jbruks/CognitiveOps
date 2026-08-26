@@ -1,13 +1,18 @@
 from dataclasses import dataclass
 from typing import List, Optional
-
 from openai import OpenAI
 import cv2
 import base64
 import json
 import os
-
 from rover_interfaces import PerceptionState
+
+from lite_world_model import WorldBuilder
+from lite_world_model import WorldModel
+
+
+from utils.xlogger import XLogger
+
 
 
 @dataclass
@@ -18,10 +23,19 @@ class SimulatedScenario:
     corridor_visible: bool
     summary: str
     confidence: float = 1.0
+    
+@dataclass
+class PerceptionResult:
+    perception_state: PerceptionState
+    world_model: object | None = None
+    semantic_summary: str = ""
+    image_bytes: bytes | None = None
 
 
 class PerceptionModule:
-
+    world = WorldModel
+    pm_world_model: WorldModel | None = None
+    pm_world_builder: WorldBuilder | None = None
     BUILTIN_SCENARIOS = {
         "corridor_forward": SimulatedScenario(
             name="corridor_forward",
@@ -67,7 +81,10 @@ class PerceptionModule:
         default_scenario: str = "corridor_forward",
         scenario_sequence: Optional[List[str]] = None,
         loop_sequence: bool = True,
+        world = WorldModel()
     ):
+        XLogger.log("PerceptionModule", "__init__")
+
         self.mode = mode
 
         # --- SIMULATION SETUP ---
@@ -120,6 +137,7 @@ class PerceptionModule:
     # =========================
 
     def _observe_camera(self) -> PerceptionState:
+        XLogger.log("Perception", "_observe_camera")
         ret, frame = self.cap.read()
 
         if not ret:
@@ -166,53 +184,15 @@ class PerceptionModule:
     # =========================
 
     def observe(self) -> PerceptionState:
+        XLogger.log("Perception", "Observe")
         if self.mode == "camera":
             return self._observe_camera()
         else:
             return self._observe_simulated()
 
 
-    
-
-    def observe_llm_OLD(self):
-        """
-        Nueva función mínima para pipeline LLM.
-        No rompe nada existente.
-        """
-        if self.mode != "camera":
-            state = self._observe_simulated()
-            return state, None
-
-        ret, frame = self.cap.read()
-        if not ret:
-            return (
-                PerceptionState(
-                    obstacle_ahead=False,
-                    free_direction="none",
-                    corridor_visible=False,
-                    summary="Camera error",
-                    confidence=0.0,
-                ),
-                None,
-            )
-
-        frame = cv2.resize(frame, (320, 240))
-
-        # reutilizamos lógica actual (sin tocar nada)
-        state = self._observe_camera()
-
-        # convertir imagen a bytes
-        ok, buffer = cv2.imencode(".jpg", frame)
-        image_bytes = buffer.tobytes() if ok else None
-
-        return state, image_bytes
-        
-        
-        
-    #################
-
-
     def observe_llm(self):
+        XLogger.log("Perception", "Observe_llm")
         """
         LLM-based perception + image output
         """
@@ -304,12 +284,30 @@ class PerceptionModule:
                 summary=str(data.get("summary", "")),
                 confidence=float(data.get("confidence", 0.0)),
             )
+            
+            
+            
+            world = WorldBuilder.update(self, rover_state=None, perception_state=None)
+            ##########semantic_summary = world_model.semantic_summary
+            
+            
 
-            return state, image_bytes
+            pr = PerceptionResult(state, None, "", image_bytes);
+            
+            return state, image_bytes, pr, world
+            #return pr
+            
 
         except Exception as exc:
             #print(f"[PERCEPTION LLM ERROR] {exc}")
+            
 
             # fallback a visión clásica
             state = self._observe_camera()
-            return state, image_bytes
+            
+            pr = PerceptionResult(state, None, "", image_bytes);
+            
+            
+            return state, image_bytes, pr, world
+            
+            #return state, image_bytes

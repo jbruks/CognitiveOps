@@ -4,11 +4,14 @@ from .world_model import WorldModel
 from .navigation_state import NavigationState
 from .object_node import ObjectNode
 from .region import Region
+from utils.xlogger import XLogger
+
 
 
 class WorldBuilder:
 
     def __init__(self):
+        XLogger.log("WorldBuilder", "__init__")
         self.world = WorldModel()
 
     def update(
@@ -16,6 +19,7 @@ class WorldBuilder:
         rover_state,
         perception_state,
     ):
+        XLogger.log("WorldBuilder", "update")
 
         # =========================
         # Reset frame-local state

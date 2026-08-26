@@ -8,9 +8,13 @@ from typing import List, Optional
 from .navigation_state import NavigationState
 from .object_node import ObjectNode
 from .region import Region
+from utils.xlogger import XLogger
+
 
 @dataclass
 class WorldModel:
+    
+        
     regions: List = field(default_factory=list)
     objects: List = field(default_factory=list)
     relationships: List = field(default_factory=list)
@@ -18,24 +22,18 @@ class WorldModel:
 
     rover_state = None
     navigation_state = None
-
     timestamp: float = 0.0
     confidence: float = 1.0
-    
-    
-    
-
-
     navigation_state: Optional[NavigationState] = None
-
     objects: List[ObjectNode] = field(default_factory=list)
     regions: List[Region] = field(default_factory=list)
-
     relationships: list = field(default_factory=list)
     affordances: list = field(default_factory=list)
 
+    
+        
     def semantic_summary(self) -> str:
-
+        XLogger.log("WorldModel", "semantic_summary")
         lines = []
 
         # =========================
