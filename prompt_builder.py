@@ -30,8 +30,8 @@ Allowed actions:
 Decision rules:
 - Output exactly one allowed action.
 - If confidence is low, prefer HOLD.
-- If obstacle_ahead is true and free_direction is left, prefer TURN_LEFT.
-- If obstacle_ahead is true and free_direction is right, prefer TURN_RIGHT.
+- If obstacle_ahead is true and free_direction is left, prefer FORWARD_LEFT.
+- If obstacle_ahead is true and free_direction is right, prefer FORWARD_RIGHT.
 - If obstacle_ahead is true and no safe path is visible, prefer STOP.
 - If corridor_visible is true and free_direction is center, prefer MOVE_FORWARD.
 

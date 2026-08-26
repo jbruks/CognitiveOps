@@ -6,14 +6,18 @@ static const int THROTTLE_PIN = 10;
 
 // ===== RC pulse config =====
 static const int PWM_CENTER = 1500;
-static const int PWM_STEER_LEFT = 1300;
+
+static const int PWM_CENTER_STEER = 1450;
+
+static const int PWM_STEER_LEFT = 1200;
 static const int PWM_STEER_RIGHT = 1700;
-static const int PWM_THROTTLE_FORWARD = 1600;
+//static const int PWM_THROTTLE_FORWARD = 1600;
+static const int PWM_THROTTLE_FORWARD = 1580;
 
 // ===== Timing config =====
 static const unsigned long FAILSAFE_TIMEOUT_MS = 50000;
 static const unsigned long ACTION_FORWARD_MS = 5000;
-static const unsigned long ACTION_TURN_MS = 220;
+static const unsigned long ACTION_TURN_MS = 200;
 static const unsigned long BOOT_NEUTRAL_MS = 3000;
 
 Servo steeringServo;
@@ -24,10 +28,21 @@ bool actionActive = false;
 unsigned long lastCommandMs = 0;
 unsigned long actionEndMs = 0;
 
-int currentSteerUs = PWM_CENTER;
+unsigned long lastRampUpdate = 0;
+const int RAMP_INTERVAL_MS = 10;  // prueba 10–20
+
+int currentSteerUs = PWM_CENTER_STEER;
 int currentThrottleUs = PWM_CENTER;
 String currentMode = "STANDBY";
 String lastAction = "NONE";
+
+int targetSteerUs = PWM_CENTER_STEER;
+int targetThrottleUs = PWM_CENTER;
+
+void setTargets(int steerUs, int throttleUs) {
+  targetSteerUs = constrain(steerUs, 1000, 2000);
+  targetThrottleUs = constrain(throttleUs, 1000, 2000);
+}
 
 void applyOutputs(int steerUs, int throttleUs) {
   currentSteerUs = constrain(steerUs, 1000, 2000);
@@ -37,7 +52,65 @@ void applyOutputs(int steerUs, int throttleUs) {
 }
 
 void neutralOutputs() {
-  applyOutputs(PWM_CENTER, PWM_CENTER);
+  //applyOutputs(PWM_CENTER, PWM_CENTER);
+  setTargets(PWM_CENTER_STEER, PWM_CENTER);
+}
+
+void updateRampold01() {
+
+  const int STEP = 1;  // ajustable (2–5 ideal)
+  
+  // THROTTLE
+  int deltaT = targetThrottleUs - currentThrottleUs;
+  if (deltaT > STEP) currentThrottleUs += STEP;
+  else if (deltaT < -STEP) currentThrottleUs -= STEP;
+  else currentThrottleUs = targetThrottleUs;
+
+  // STEERING
+  int deltaS = targetSteerUs - currentSteerUs;
+  if (deltaS > STEP) currentSteerUs += STEP;
+  else if (deltaS < -STEP) currentSteerUs -= STEP;
+  else currentSteerUs = targetSteerUs;
+}
+
+void updateRamp02() {
+
+  const int STEP = 1;  // ajustable
+  
+  // THROTTLE
+  int deltaT = targetThrottleUs - currentThrottleUs;
+  if (deltaT > STEP) currentThrottleUs += STEP;
+  else if (deltaT < -STEP) currentThrottleUs -= STEP;
+  else currentThrottleUs = targetThrottleUs;
+
+  // STEERING
+  // int deltaS = targetSteerUs - currentSteerUs;
+  // if (deltaS > STEP) currentSteerUs += STEP;
+  // else if (deltaS < -STEP) currentSteerUs -= STEP;
+  // else currentSteerUs = targetSteerUs;
+  currentSteerUs = targetSteerUs;
+}
+
+void updateRamp() {
+
+  if (millis() - lastRampUpdate < RAMP_INTERVAL_MS) return;
+  lastRampUpdate = millis();
+
+  const int STEP = 2;
+
+  // THROTTLE
+  int deltaT = targetThrottleUs - currentThrottleUs;
+  if (deltaT > STEP) currentThrottleUs += STEP;
+  else if (deltaT < -STEP) currentThrottleUs -= STEP;
+  else currentThrottleUs = targetThrottleUs;
+
+  // STEERING
+  // int deltaS = targetSteerUs - currentSteerUs;
+  // if (deltaS > STEP) currentSteerUs += STEP;
+  // else if (deltaS < -STEP) currentSteerUs -= STEP;
+  // else currentSteerUs = targetSteerUs;
+  currentSteerUs = targetSteerUs;
+
 }
 
 void setFailsafe() {
@@ -53,7 +126,10 @@ void startTimedAction(int steerUs, int throttleUs, unsigned long durationMs, con
     return;
   }
 
-  applyOutputs(steerUs, throttleUs);
+  //applyOutputs(steerUs, throttleUs);
+
+  setTargets(steerUs, throttleUs);
+  
   actionActive = true;
   actionEndMs = millis() + durationMs;
   currentMode = "GUIDED";
@@ -115,7 +191,7 @@ void handleCommand(const String& cmdRaw) {
   }
 
   if (cmd == "MOVE_FORWARD") {
-    startTimedAction(PWM_CENTER, PWM_THROTTLE_FORWARD, ACTION_FORWARD_MS, "MOVE_FORWARD");
+    startTimedAction(PWM_CENTER_STEER, PWM_THROTTLE_FORWARD, ACTION_FORWARD_MS, "MOVE_FORWARD");
     return;
   }
 
@@ -157,6 +233,7 @@ void handleCommand(const String& cmdRaw) {
     return;
   }
 
+ 
   Serial.print("ERR UNKNOWN_CMD ");
   Serial.println(cmd);
 }
@@ -197,6 +274,31 @@ void serviceFailsafe() {
 }
 
 void setup() {
+    Serial.begin(115200);
+
+    steeringServo.attach(STEERING_PIN);
+    throttleServo.attach(THROTTLE_PIN);
+
+    // Inicializar valores
+    currentThrottleUs = PWM_CENTER;
+    currentSteerUs = PWM_CENTER_STEER;;
+
+    targetThrottleUs = PWM_CENTER;
+    targetSteerUs = PWM_CENTER_STEER;;
+
+    // 🔥 FORZAR neutro varias veces
+    for (int i = 0; i < 20; i++) {
+        throttleServo.writeMicroseconds(PWM_CENTER);
+        steeringServo.writeMicroseconds(PWM_CENTER_STEER);
+        delay(20);
+    }
+
+   
+
+    Serial.println("READY");
+}
+
+void setup_old_01() {
   Serial.begin(115200);
   steeringServo.attach(STEERING_PIN);
   throttleServo.attach(THROTTLE_PIN);
@@ -209,4 +311,7 @@ void loop() {
   serviceSerial();
   serviceTimedAction();
   serviceFailsafe();
+
+  updateRamp();
+  applyOutputs(currentSteerUs, currentThrottleUs);
 }

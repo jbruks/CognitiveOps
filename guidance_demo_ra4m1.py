@@ -5,7 +5,7 @@ from guidance_navigator import GuidanceNavigator
 
 
 def main():
-    rover = RoverClient("/dev/ttyACM4")
+    rover = RoverClient("/dev/ttyACM1")
     rover.connect_and_prepare()
 
     perception = PerceptionModule(

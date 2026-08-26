@@ -5,8 +5,8 @@ LLM_BACKEND = "openai"
 OPENAI_MODEL = "gpt-5.4"
 LLM_DEBUG = True
 
-LOOP_DELAY_S = 25
-DEFAULT_STEPS = 5000
+LOOP_DELAY_S = 4
+DEFAULT_STEPS = 25
 
 SYSTEM_GOAL = (
     "Navigate the rover safely using short tactical actions. "
@@ -17,8 +17,8 @@ SYSTEM_GOAL = (
 
 ALLOWED_ACTIONS = [
     "MOVE_FORWARD",
-    "TURN_LEFT",
-    "TURN_RIGHT",
+    "FORWARD_LEFT",
+    "FORWARD_RIGHT",
     "STOP",
     "HOLD",
 ]

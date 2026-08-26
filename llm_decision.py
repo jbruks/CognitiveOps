@@ -51,9 +51,11 @@ class TacticalLLMDecisionMaker:
 
         if "free_direction: left" in text:
             return "ACTION=TURN_LEFT"
+            #return "ACTION=FORWARD_LEFT"
 
         if "free_direction: right" in text:
             return "ACTION=TURN_RIGHT"
+            #return "ACTION=FORWARD_RIGHT"
 
         if "corridor_visible: true" in text:
             return "ACTION=MOVE_FORWARD"

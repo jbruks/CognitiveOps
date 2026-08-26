@@ -99,8 +99,8 @@ class RoverClient:
 
         command_map = {
             TacticalAction.MOVE_FORWARD: "MOVE_FORWARD",
-            TacticalAction.TURN_LEFT: "TURN_LEFT",
-            TacticalAction.TURN_RIGHT: "TURN_RIGHT",
+            TacticalAction.TURN_LEFT: "FORWARD_LEFT",
+            TacticalAction.TURN_RIGHT: "FORWARD_RIGHT",
             TacticalAction.STOP: "STOP",
             TacticalAction.HOLD: "HOLD",
         }
