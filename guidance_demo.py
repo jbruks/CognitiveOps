@@ -5,7 +5,8 @@ from guidance_navigator import GuidanceNavigator
 
 
 def main():
-    rover = RoverClient("udp:127.0.0.1:14551")
+    #rover = RoverClient("udp:127.0.0.1:14551")
+    rover = RoverClient("/dev/ttyACM0")
     rover.connect_and_prepare()
 
     perception = PerceptionModule(
