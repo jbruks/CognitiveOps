@@ -8,11 +8,14 @@ from l4_mission_planner import L4MissionPlanner
 
 from lite_world_model import WorldBuilder
 
+from utils.xlogger import XLogger
+
 
 def main():
-    print("[MAIN] Starting full autonomy stack")
-    print("___________________________________")
-
+    #print("[MAIN] Starting full autonomy stack")
+    #print("___________________________________")
+    XLogger.log("[MAIN] ", "Starting full autonomy stack")
+    XLogger.log("[MAIN] ", "___________________________________")
 
     # =========================
     # L1 — Rover (RA4M1)
@@ -59,12 +62,14 @@ def main():
         memory_system=memory,
     )
 
-    print("[MAIN] Stack initialized (L4 → L3 → L2 → L1)")
-
+    #print("[MAIN] Stack initialized (L4 → L3 → L2 → L1)")
+    XLogger.log("[MAIN] ", "Stack initialized (L4 → L3 → L2 → L1)")
+    
+     
     # =========================
     # RUN LOOP
     # =========================
-    l4.run_loop(steps=25, delay_s=7)
+    l4.run_loop(steps=5, delay_s=7)
 
 
 if __name__ == "__main__":

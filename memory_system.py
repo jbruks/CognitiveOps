@@ -5,7 +5,7 @@ class MemorySystem:
         self.mission_context = {}
 
     def update_step(self, rover_state, perception_state, action):
-        print("[MEMORY] update_step")
+        #print("[MEMORY] update_step")
         self.short_term.append({
             "rover": rover_state,
             "perception": perception_state,

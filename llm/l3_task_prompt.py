@@ -41,7 +41,7 @@ class L3TaskPromptBuilder(PromptBuilderBase):
         return "Output: MODE=<EXPLORE|RECOVER|CAUTIOUS>"
         
     def decide_task_mode(self, prompt):
-        print("[LLM] task mode decision")
+        #print("[LLM] task mode decision")
         return "MODE=EXPLORE"
         
 

@@ -308,7 +308,7 @@ class PerceptionModule:
             return state, image_bytes
 
         except Exception as exc:
-            print(f"[PERCEPTION LLM ERROR] {exc}")
+            #print(f"[PERCEPTION LLM ERROR] {exc}")
 
             # fallback a visión clásica
             state = self._observe_camera()

@@ -4,6 +4,7 @@ from typing import Dict
 import serial
 
 from rover_interfaces import RoverState, TacticalAction
+from utils.xlogger import XLogger
 
 
 class L1RoverControler:
@@ -43,7 +44,8 @@ class L1RoverControler:
         self.state = RoverState(armed=False, mode="UNKNOWN")
 
     def connect(self):
-        print(f"Connecting to RA4M1 rover controller on {self.connection_string} ...")
+        #print(f"Connecting to RA4M1 rover controller on {self.connection_string} ...")
+        XLogger.log("L1", f"Connecting to RA4M1 rover controller on {self.connection_string} ...")
         self.serial_conn = serial.Serial(
             self.connection_string,
             self.baudrate,
@@ -54,25 +56,31 @@ class L1RoverControler:
         self._drain_input()
         response = self._request("PING", expected_prefixes=("PONG",), required=False)
         if response:
-            print(f"Controller ping OK: {response}")
+            #print(f"Controller ping OK: {response}")
+            XLogger.log("L1", f"Controller ping OK: {response}")
         else:
-            print("Controller ping not implemented yet; continuing in local-state mode")
+            #print("Controller ping not implemented yet; continuing in local-state mode")
+            XLogger.log("L1", "Controller ping not implemented yet; continuing in local-state mode")
 
     def arm(self):
         response = self._request("ARM", expected_prefixes=("ACK ARM",), required=False)
         if response:
-            print("Rover armed")
+            #print("Rover armed")
+            XLogger.log("L1", "Rover armed")
         else:
-            print("ARM command sent without ACK; assuming armed for temporary backend")
+            #print("ARM command sent without ACK; assuming armed for temporary backend")
+            XLogger.log("L1", "ARM command sent without ACK; assuming armed for temporary backend")
         self.state.armed = True
         self.state.mode = "GUIDED"
 
     def disarm(self):
         response = self._request("DISARM", expected_prefixes=("ACK DISARM",), required=False)
         if response:
-            print("Rover disarmed")
+            #print("Rover disarmed")
+            XLogger.log("L1", "Rover disarmed")
         else:
-            print("DISARM command sent without ACK; updating local state")
+            #print("DISARM command sent without ACK; updating local state")
+            XLogger.log("L1", "DISARM command sent without ACK; updating local state")
         self.state.armed = False
         self.state.speed_m_s = 0.0
         self.state.mode = "STANDBY"
@@ -96,7 +104,9 @@ class L1RoverControler:
         return self.state
 
     def execute_tactical_action(self, action: TacticalAction):
-        print(f"Executing tactical action via RA4M1: {action.value}")
+        #print(f"Executing tactical action via RA4M1: {action.value}")
+        XLogger.log("L1", f"Executing tactical action via RA4M1: {action.value}")
+
 
         command_map = {
             TacticalAction.MOVE_FORWARD: "MOVE_FORWARD",
@@ -137,7 +147,8 @@ class L1RoverControler:
             if response.startswith("ERR"):
                 if required:
                     raise RuntimeError(f"Controller returned error for '{line}': {response}")
-                print(f"Controller error for '{line}': {response}")
+                #print(f"Controller error for '{line}': {response}")
+                XLogger.log("L1", f"Controller error for '{line}': {response}")
                 return None
 
         if required:

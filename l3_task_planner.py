@@ -3,6 +3,9 @@ from llm.l3_task_prompt import L3TaskPromptBuilder
 from llm.l3_task_parser import parse_mode, validate_mode
 from llm.llm_service import LLMService
 
+from utils.xlogger import XLogger
+
+
 class L3TaskPlanner:
     def __init__(self, l2_planner, perception_module, memory_system, llm_service=None):
         self.l2_planner = l2_planner
@@ -13,7 +16,9 @@ class L3TaskPlanner:
         self.current_mode = "EXPLORE"
 
     def step(self, rover_state):
-        print("[L3] Step")
+        #print("[L3] Step")
+        XLogger.log("L3", "Step")
+        
 
         perception_state, image_bytes = self.perception.observe_llm()
 
@@ -30,7 +35,8 @@ class L3TaskPlanner:
         return action
 
     def decide_mode(self, rover_state, perception_state):
-        print("[L3] decide_mode (LLM)")
+        #print("[L3] decide_mode (LLM)")
+        XLogger.log("L3", "decide_mode (LLM)")
 
         # =========================
         # 1. Construir contexto desde memoria
@@ -46,14 +52,14 @@ class L3TaskPlanner:
         # =========================
         prompt = L3TaskPromptBuilder().build(context)
 
-        print("[L3] Prompt:\n", prompt)
+        #print("[L3] Prompt:\n", prompt)
 
         # =========================
         # 3. Llamar al LLM
         # =========================
         response = self.llm.decide_task_mode(prompt)
 
-        print("[L3] Raw response:", response)
+        #print("[L3] Raw response:", response)
 
         # =========================
         # 4. Parsear y validar
@@ -61,14 +67,16 @@ class L3TaskPlanner:
         mode = parse_mode(response)
         mode = validate_mode(mode)
 
-        print("[L3] Final mode:", mode)
+        #print("[L3] Final mode:", mode)
 
         return mode
 
     def call_llm_for_mode(self, context):
-        print("[L3] call_llm_for_mode")
+        #print("[L3] call_llm_for_mode")
+        XLogger.log("L3", "call_llm_for_mode")
         return "EXPLORE"
 
     def detect_stuck(self):
-        print("[L3] detect_stuck")
+        #print("[L3] detect_stuck")
+        XLogger.log("L3", "detect_stuck")
         return False
