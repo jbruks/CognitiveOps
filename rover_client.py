@@ -1,5 +1,6 @@
 import math
 import time
+import random
 
 from pymavlink import mavutil
 
@@ -90,13 +91,14 @@ class RoverClient:
         print(f"Executing tactical action: {action.value}")
 
         if action == TacticalAction.MOVE_FORWARD:
-            self.move_forward(distance_m=100, speed_m_s=5)
-
+            self.move_forward(distance_m=900, speed_m_s=12)
         elif action == TacticalAction.TURN_LEFT:
-            self.turn_relative(angle_deg=-20.0)
+            #self.turn_relative(angle_deg=-90.0)
+            self.turn_relative(angle_deg=random.randint(-90,90))
 
         elif action == TacticalAction.TURN_RIGHT:
-            self.turn_relative(angle_deg=20.0)
+            #self.turn_relative(angle_deg=90.0)
+            self.turn_relative(angle_deg=random.randint(-90,90))
 
         elif action == TacticalAction.STOP:
             self.stop()

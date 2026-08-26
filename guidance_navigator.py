@@ -1,6 +1,7 @@
 import time
 
 from config import LLM_ENABLED, USE_FALLBACK_ON_ERROR
+from config import LLM_DEBUG
 from decision_validator import (
     DecisionValidationError,
     parse_llm_response,
@@ -63,6 +64,14 @@ class GuidanceNavigator:
             rover_state,
             perception_state,
         )
+        
+        if LLM_DEBUG and prompt is not None:
+            print("\n--- PROMPT ---")
+            print(prompt)
+
+        if LLM_DEBUG:
+            print("\n--- LLM RESPONSE ---")
+            print(decision_info)
 
         print("\n=== Guidance Step ===")
         print(f"Rover state: {rover_state}")
@@ -74,6 +83,7 @@ class GuidanceNavigator:
         if prompt is not None:
             print("--- LLM Prompt ---")
             print(prompt)
+        
 
         self.rover_client.execute_tactical_action(action)
 
