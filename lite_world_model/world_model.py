@@ -84,5 +84,5 @@ class WorldModel:
             lines.append(
                 "No semantic observations available."
             )
-        XLogger.log("class WorldModel:", "\n".join(lines))
+        #XLogger.log("class WorldModel:", "\n".join(lines))
         return "\n".join(lines)

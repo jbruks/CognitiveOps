@@ -33,7 +33,10 @@ class L4MissionPlanner:
     def step(self):
         XLogger.log("L4", "step")
         rover_state = self.l1_rover_controler.get_state()
-        task = self.decide_task(rover_state)
+        
+        #task = self.decide_task(rover_state)
+        mission = self.decide_task(rover_state)
+
         
         result = self.perception.observe_llm()
         perception_state=result.perception_state
@@ -49,17 +52,24 @@ class L4MissionPlanner:
             f.write(image_bytes)   
             
         XLogger.log("L4", f"step [SIM {sim_id:04d}] Image saved → {filepath}")
-        
-        
         world = result.world_model
-        
-        action = self.task_planner.step(rover_state, result)
-        
-        
+        #action = self.task_planner.step(rover_state, result)
+        action = self.task_planner.step(
+            rover_state,
+            result,
+            mission
+        )        
 
     def decide_task(self, rover_state):
         XLogger.log("L4", "decide_task")
-        return "EXPLORE"
+        return {
+            "mission_type": "GO_TO_GPS",
+            "target_position": {
+                "lat": 39.470000,
+                "lon": -0.500000
+            },
+            "mission_text": "Reach target GPS position."
+    }
 
     def call_llm_for_task(self, context):
         XLogger.log("L4", "call_llm_for_task")

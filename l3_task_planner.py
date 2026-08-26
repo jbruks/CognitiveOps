@@ -19,7 +19,9 @@ class L3TaskPlanner:
         self.llm = llm_service or LLMService()
         self.current_mode = "EXPLORE"
 
-    def step(self, rover_state, result):
+    #def step(self, rover_state, result, mission):
+    def step(self, rover_state, result, mission):
+
         XLogger.log("L3", "step")        
         #mode = self.decide_mode(rover_state, result.perception_state)         NOT NEEDED BY NOW
         
