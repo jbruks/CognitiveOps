@@ -12,7 +12,7 @@ static const int PWM_THROTTLE_FORWARD = 1600;
 
 // ===== Timing config =====
 static const unsigned long FAILSAFE_TIMEOUT_MS = 50000;
-static const unsigned long ACTION_FORWARD_MS = 30000;
+static const unsigned long ACTION_FORWARD_MS = 5000;
 static const unsigned long ACTION_TURN_MS = 220;
 static const unsigned long BOOT_NEUTRAL_MS = 3000;
 
