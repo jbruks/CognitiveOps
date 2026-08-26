@@ -8,7 +8,8 @@ class MemoryFormatter:
         for step in history:
             action = step.get("action")
             perception = step.get("perception", {})
-            obstacle = perception.get("obstacle_ahead", "unknown")
+            #obstacle = perception.get("obstacle_ahead", "unknown")
+            obstacle = getattr(perception, "obstacle_ahead", "unknown")
 
             lines.append(f"- {action}, obstacle_ahead={obstacle}")
 

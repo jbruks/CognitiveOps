@@ -1,0 +1,149 @@
+[1mdiff --git a/l3_task_planner.py b/l3_task_planner.py[m
+[1mindex 9a18710..0c3452c 100644[m
+[1m--- a/l3_task_planner.py[m
+[1m+++ b/l3_task_planner.py[m
+[36m@@ -1,9 +1,14 @@[m
+[32m+[m[32mfrom llm.memory_formatter import MemoryFormatter[m
+[32m+[m[32mfrom llm.l3_task_prompt import L3TaskPromptBuilder[m
+[32m+[m[32mfrom llm.l3_task_parser import parse_mode, validate_mode[m
+[32m+[m[32mfrom llm.llm_service import LLMService[m
+[32m+[m
+ class L3TaskPlanner:[m
+     def __init__(self, navigator, perception_module, memory_system, llm_service=None):[m
+         self.navigator = navigator[m
+         self.perception = perception_module[m
+         self.memory = memory_system[m
+[31m-        self.llm = llm_service[m
+[32m+[m[32m        self.llm = llm_service or LLMService()[m
+ [m
+         self.current_mode = "EXPLORE"[m
+ [m
+[36m@@ -25,8 +30,40 @@[m [mclass L3TaskPlanner:[m
+         return action[m
+ [m
+     def decide_mode(self, rover_state, perception_state):[m
+[31m-        print("[L3] decide_mode")[m
+[31m-        return "EXPLORE"[m
+[32m+[m[32m        print("[L3] decide_mode (LLM)")[m
+[32m+[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        # 1. Construir contexto desde memoria[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        context = MemoryFormatter.build_l3_context([m
+[32m+[m[32m            self.memory,[m
+[32m+[m[32m            rover_state,[m
+[32m+[m[32m            perception_state,[m
+[32m+[m[32m        )[m
+[32m+[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        # 2. Construir prompt[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        prompt = L3TaskPromptBuilder().build(context)[m
+[32m+[m
+[32m+[m[32m        print("[L3] Prompt:\n", prompt)[m
+[32m+[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        # 3. Llamar al LLM[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        response = self.llm.decide_task_mode(prompt)[m
+[32m+[m
+[32m+[m[32m        print("[L3] Raw response:", response)[m
+[32m+[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        # 4. Parsear y validar[m
+[32m+[m[32m        # =========================[m
+[32m+[m[32m        mode = parse_mode(response)[m
+[32m+[m[32m        mode = validate_mode(mode)[m
+[32m+[m
+[32m+[m[32m        print("[L3] Final mode:", mode)[m
+[32m+[m
+[32m+[m[32m        return mode[m
+ [m
+     def call_llm_for_mode(self, context):[m
+         print("[L3] call_llm_for_mode")[m
+[1mdiff --git a/llm/l3_task_prompt.py b/llm/l3_task_prompt.py[m
+[1mindex 203179b..4f9a151 100644[m
+[1m--- a/llm/l3_task_prompt.py[m
+[1m+++ b/llm/l3_task_prompt.py[m
+[36m@@ -2,15 +2,75 @@[m [mfrom llm.prompt_framework import PromptBuilderBase[m
+ [m
+ class L3TaskPromptBuilder(PromptBuilderBase):[m
+     def build_context(self, rover_state, perception_state, memory):[m
+[31m-        return ([m
+[31m-            f"L3 CONTEXT:\n"[m
+[31m-            f"State={rover_state}\n"[m
+[31m-            f"Perception={perception_state}\n"[m
+[31m-            f"Memory={memory}"[m
+[31m-        )[m
+[32m+[m[32m        history_lines = [][m
+[32m+[m
+[32m+[m[32m        # ejemplo simple (ajústalo a tu estructura real)[m
+[32m+[m[32m        for step in memory.recent_steps[-5:]:[m
+[32m+[m[32m            action = step.action[m
+[32m+[m[32m            obstacle = step.perception.obstacle_ahead[m
+[32m+[m[32m            history_lines.append(f"- {action}, obstacle_ahead={obstacle}")[m
+[32m+[m
+[32m+[m[32m        history_text = "\n".join(history_lines) if history_lines else "No recent history."[m
+[32m+[m
+[32m+[m[32m        # summary simple[m
+[32m+[m[32m        if history_lines:[m
+[32m+[m[32m            last_action = memory.recent_steps[-1].action[m
+[32m+[m[32m            repetitions = sum(1 for s in memory.recent_steps if s.action == last_action)[m
+[32m+[m[32m            summary = f"Repeated {last_action} {repetitions} times"[m
+[32m+[m[32m        else:[m
+[32m+[m[32m            summary = "No recent history."[m
+[32m+[m
+[32m+[m[32m        return f"""[m
+[32m+[m[32m            Recent history:[m
+[32m+[m[32m            {history_text}[m
+[32m+[m
+[32m+[m[32m            Summary:[m
+[32m+[m[32m            {summary}[m
+[32m+[m
+[32m+[m[32m            Current perception:[m
+[32m+[m[32m            {perception_state}[m
+[32m+[m
+[32m+[m[32m            Current state:[m
+[32m+[m[32m            {rover_state}[m
+[32m+[m[32m            """.strip()[m
+ [m
+     def build_rules(self):[m
+         return "Decide the behavior mode based on context."[m
+ [m
+     def build_output_format(self):[m
+         return "Output: MODE=<EXPLORE|RECOVER|CAUTIOUS>"[m
+[32m+[m[41m        [m
+[32m+[m[32m    def decide_task_mode(self, prompt):[m
+[32m+[m[32m        print("[LLM] task mode decision")[m
+[32m+[m[32m        return "MODE=EXPLORE"[m
+[32m+[m[41m        [m
+[32m+[m
+[32m+[m
+[32m+[m[32m    def build(self, context):[m
+[32m+[m[32m        return f"""[m
+[32m+[m[32m        You are the task-level planner of an autonomous rover.[m
+[32m+[m
+[32m+[m[32m        Your job is to analyze recent behavior and decide the current mode.[m
+[32m+[m
+[32m+[m[32m        {context}[m
+[32m+[m
+[32m+[m[32m        Instructions:[m
+[32m+[m[32m        - Analyze recent actions and perception[m
+[32m+[m[32m        - Detect patterns (e.g., repetition, lack of progress)[m
+[32m+[m[32m        - Decide if the rover is stuck or progressing[m
+[32m+[m
+[32m+[m[32m        Definition of stuck:[m
+[32m+[m[32m        The rover is considered STUCK if:[m
+[32m+[m[32m        - It repeats the same action multiple times (>=3)[m
+[32m+[m[32m        - AND there is no change in position or situation[m
+[32m+[m[32m        - AND perception does not improve[m
+[32m+[m
+[32m+[m[32m        When stuck:[m
+[32m+[m[32m        - You MUST output MODE=RECOVER[m
+[32m+[m
+[32m+[m[32m        If unsure between EXPLORE and RECOVER:[m
+[32m+[m[32m        - Prefer RECOVER if repetition is observed[m
+[32m+[m
+[32m+[m[32m        Output:[m
+[32m+[m[32m        MODE=<EXPLORE|RECOVER|CAUTIOUS>[m
+[32m+[m[32m        """.strip()[m
