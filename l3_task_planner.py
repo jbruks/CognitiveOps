@@ -4,8 +4,8 @@ from llm.l3_task_parser import parse_mode, validate_mode
 from llm.llm_service import LLMService
 
 class L3TaskPlanner:
-    def __init__(self, navigator, perception_module, memory_system, llm_service=None):
-        self.navigator = navigator
+    def __init__(self, l2_planner, perception_module, memory_system, llm_service=None):
+        self.l2_planner = l2_planner
         self.perception = perception_module
         self.memory = memory_system
         self.llm = llm_service or LLMService()
@@ -19,7 +19,7 @@ class L3TaskPlanner:
 
         mode = self.decide_mode(rover_state, perception_state)
 
-        action, decision_info, prompt, source = self.navigator.decide_action(
+        action, decision_info, prompt, source = self.l2_planner.step(
             rover_state,
             perception_state,
             image_bytes,

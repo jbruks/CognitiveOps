@@ -6,7 +6,7 @@ import serial
 from rover_interfaces import RoverState, TacticalAction
 
 
-class RoverClient:
+class L1RoverControler:
     """
     Drop-in tactical rover client for a temporary RA4M1 backend.
 

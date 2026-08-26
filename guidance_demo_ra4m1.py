@@ -1,20 +1,24 @@
-from rover_client_ra4m1 import RoverClient
+from l1_rover_controler_ra4m1 import L1RoverControler
 from perception_module import PerceptionModule
-from guidance_navigator import GuidanceNavigator
+from l2_tactical_planner import L2TacticalPlanner
 
 from memory_system import MemorySystem
 from l3_task_planner import L3TaskPlanner
 from l4_mission_planner import L4MissionPlanner
 
+from lite_world_model import WorldBuilder
+
+
 def main():
     print("[MAIN] Starting full autonomy stack")
+    print("___________________________________")
 
 
     # =========================
     # L1 — Rover (RA4M1)
     # =========================
-    rover = RoverClient("/dev/ttyACM0")
-    rover.connect_and_prepare()
+    l1_rover_controler = L1RoverControler("/dev/ttyACM0")
+    l1_rover_controler.connect_and_prepare()
 
     # =========================
     # Perception
@@ -24,9 +28,10 @@ def main():
     # =========================
     # L2 — Tactical Navigation
     # =========================
-    navigator = GuidanceNavigator(
-        rover,
+    l2_planner = L2TacticalPlanner(
+        l1_rover_controler,
         perception,
+        WorldBuilder,
         llm_enabled=True,
         fallback_enabled=True,
     )
@@ -40,7 +45,7 @@ def main():
     # L3 — Task Planner
     # =========================
     l3 = L3TaskPlanner(
-        navigator=navigator,
+        l2_planner=l2_planner,
         perception_module=perception,
         memory_system=memory,
     )
@@ -49,7 +54,7 @@ def main():
     # L4 — Mission Planner
     # =========================
     l4 = L4MissionPlanner(
-        rover_client=rover,
+        l1_rover_controler=l1_rover_controler,
         task_planner=l3,
         memory_system=memory,
     )

@@ -1,8 +1,8 @@
 import time
 
 class L4MissionPlanner:
-    def __init__(self, rover_client, task_planner, memory_system, llm_service=None):
-        self.rover = rover_client
+    def __init__(self, l1_rover_controler, task_planner, memory_system, llm_service=None):
+        self.l1_rover_controler = l1_rover_controler
         self.task_planner = task_planner
         self.memory = memory_system
         self.llm = llm_service
@@ -19,13 +19,13 @@ class L4MissionPlanner:
     def step(self):
         print("[L4] step")
 
-        rover_state = self.rover.get_state()
+        rover_state = self.l1_rover_controler.get_state()
 
         task = self.decide_task(rover_state)
 
         action = self.task_planner.step(rover_state)
 
-        self.rover.execute_tactical_action(action)
+        self.l1_rover_controler.execute_tactical_action(action)
 
     def decide_task(self, rover_state):
         print("[L4] decide_task")
