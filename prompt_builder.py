@@ -1,7 +1,12 @@
 from config import ALLOWED_ACTIONS, SYSTEM_GOAL
+from utils.xlogger import XLogger
+
 
 def build_tactical_prompt(rover_state, perception_state) -> str:
     allowed_actions_str = ", ".join(ALLOWED_ACTIONS)
+
+    XLogger.log("prompt_builder.py", "build_tactical_prompt")
+
 
     return f"""
         You are the tactical navigation module of an autonomous rover.

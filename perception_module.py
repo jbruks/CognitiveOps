@@ -33,9 +33,8 @@ class PerceptionResult:
 
 
 class PerceptionModule:
-    world = WorldModel
-    pm_world_model: WorldModel | None = None
-    pm_world_builder: WorldBuilder | None = None
+    #world = WorldModel
+    
     BUILTIN_SCENARIOS = {
         "corridor_forward": SimulatedScenario(
             name="corridor_forward",
@@ -81,11 +80,13 @@ class PerceptionModule:
         default_scenario: str = "corridor_forward",
         scenario_sequence: Optional[List[str]] = None,
         loop_sequence: bool = True,
-        world = WorldModel()
+        #world = WorldModel(),
+        #worldbuilder= WorldBuilder()
     ):
         XLogger.log("PerceptionModule", "__init__")
 
         self.mode = mode
+        self.worldbuilder = WorldBuilder()
 
         # --- SIMULATION SETUP ---
         self.default_scenario = default_scenario
@@ -198,11 +199,13 @@ class PerceptionModule:
         """
         if self.mode != "camera":
             state = self._observe_simulated()
-            return state, None
+            return state, None, None, None
+            #return state, None
 
         ret, frame = self.cap.read()
 
         if not ret:
+            
             return (
                 PerceptionState(
                     obstacle_ahead=False,
@@ -211,7 +214,7 @@ class PerceptionModule:
                     summary="Camera error",
                     confidence=0.0,
                 ),
-                None,
+                None, None, None
             )
 
         frame = cv2.resize(frame, (320, 240))
@@ -229,12 +232,13 @@ class PerceptionModule:
                     confidence=0.0,
                 ),
                 None,
+                None, None
             )
 
         # 🔴 fallback si no hay LLM
         if self.llm_client is None:
             state = self._observe_camera()
-            return state, image_bytes
+            return state, None, None, image_bytes
 
         # 🧠 LLM percepción
         perception_prompt = """
@@ -243,12 +247,31 @@ class PerceptionModule:
     Analyze the image and return ONLY valid JSON:
 
     {
-      "obstacle_ahead": true,
-      "free_direction": "left",
-      "corridor_visible": false,
-      "summary": "short navigation summary",
-      "confidence": 0.8
-    }
+  "navigation": {
+    "free_direction": "left",
+    "corridor_visible": true,
+    "risk_level": "moderate"
+  },
+
+  "objects": [
+    {
+      "type": "obstacle",
+      "position": "front-left",
+      "distance_m": 1.5
+    }
+  ],
+
+  "regions": [
+    {
+      "name": "ahead",
+      "terrain": "rough"
+    }
+  ],
+
+  "summary": "short navigation summary",
+
+  "confidence": 0.8
+}
 
     Rules:
     - Be conservative
@@ -276,38 +299,66 @@ class PerceptionModule:
             text = response.output_text.strip()
 
             data = json.loads(text)
-
+            navigation = data.get("navigation", {})
+            objects = data.get("objects", [])
+            regions = data.get("regions", [])
+            
             state = PerceptionState(
-                obstacle_ahead=bool(data.get("obstacle_ahead", False)),
-                free_direction=str(data.get("free_direction", "none")),
-                corridor_visible=bool(data.get("corridor_visible", False)),
+                obstacle_ahead=len(objects) > 0,
+                free_direction=str(navigation.get("free_direction", "none")),
+                corridor_visible=bool(navigation.get("corridor_visible", False)),
                 summary=str(data.get("summary", "")),
                 confidence=float(data.get("confidence", 0.0)),
+                objects=objects,
+                regions=regions,
             )
+
+
+            #state = PerceptionState(
+            #    obstacle_ahead=bool(data.get("obstacle_ahead", False)),
+            #    free_direction=str(data.get("free_direction", "none")),
+            #    corridor_visible=bool(data.get("corridor_visible", False)),
+            #    summary=str(data.get("summary", "")),
+            #    confidence=float(data.get("confidence", 0.0)),
+            #)
             
             
             
-            world = WorldBuilder.update(self, rover_state=None, perception_state=None)
+            world = self.worldbuilder.update(rover_state=None, perception_state=state)
             ##########semantic_summary = world_model.semantic_summary
             
             
 
             pr = PerceptionResult(state, None, "", image_bytes);
-            
-            return state, image_bytes, pr, world
+            #XLogger.log("Perception", "Observe_llm-BeforeERROR")
+            #return state, image_bytes, pr, world
+            return PerceptionResult(
+                perception_state=state,
+                #world_model=world,
+                #semantic_summary=world.semantic_summary(),
+                image_bytes=image_bytes)
+
+
             #return pr
             
 
         except Exception as exc:
             #print(f"[PERCEPTION LLM ERROR] {exc}")
-            
+            #XLogger.log("Perception", "After ERROR" + f"[PERCEPTION LLM ERROR] {exc}")
 
             # fallback a visión clásica
             state = self._observe_camera()
             
-            pr = PerceptionResult(state, None, "", image_bytes);
             
+            #pr = PerceptionResult(state, None, "", image_bytes);
             
-            return state, image_bytes, pr, world
+            world = self.worldbuilder.update(rover_state=None, perception_state=state)
+           
+            #return state, image_bytes, pr, world
+            return PerceptionResult(
+                perception_state=state,
+                #world_model=world,
+                #semantic_summary=world.semantic_summary(self),
+                image_bytes=image_bytes)
             
             #return state, image_bytes

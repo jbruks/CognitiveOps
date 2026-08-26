@@ -63,7 +63,7 @@ def main():
     # =========================
     # RUN LOOP
     # =========================
-    l4.run_loop(steps=5, delay_s=7)
+    l4.run_loop(steps=3, delay_s=0)
 
 
 if __name__ == "__main__":

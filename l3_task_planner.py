@@ -25,20 +25,24 @@ class L3TaskPlanner:
         XLogger.log("L3", "Step")
         
         #perception_state, image_bytes = self.perception.observe_llm()
-        perception_state, image_bytes, pr, world = self.perception.observe_llm()
+        result = self.perception.observe_llm()
+        perception_state=result.perception_state
+        image_bytes=result.image_bytes
+        world = result.world_model
+        #perception_state, image_bytes, pr, world = self.perception.observe_llm()
         
         #XLogger.log("L3", perception_result)
         
-        mode = self.decide_mode(rover_state, pr.perception_state)
+        mode = self.decide_mode(rover_state, result.perception_state)
 
         action, decision_info, prompt, source = self.l2_planner.step(
             rover_state,
-            pr.perception_state,
+            result.perception_state,
             #image_bytes,
-            pr.image_bytes,
+            result.image_bytes,
         )
 
-        self.memory.update_step(rover_state, pr.perception_state, action)
+        self.memory.update_step(rover_state, result.perception_state, action)
 
         return action
 

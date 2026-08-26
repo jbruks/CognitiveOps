@@ -1,7 +1,10 @@
+from utils.xlogger import XLogger
+
 class MemoryFormatter:
 
     @staticmethod
     def format_recent_history(memory, n_steps=5):
+        XLogger.log("class MemoryFormatter:", "format_recent_history")
         history = memory.get_recent_history(n_steps)
         lines = []
 
@@ -17,6 +20,7 @@ class MemoryFormatter:
 
     @staticmethod
     def format_summary(memory, n_steps=5):
+        XLogger.log("class MemoryFormatter:", "format_summary")
         history = memory.get_recent_history(n_steps)
 
         if not history:
@@ -31,6 +35,7 @@ class MemoryFormatter:
 
     @staticmethod
     def build_l3_context(memory, rover_state, perception_state):
+        XLogger.log("class MemoryFormatter:", "build_l3_context")
         history = MemoryFormatter.format_recent_history(memory)
         summary = MemoryFormatter.format_summary(memory)
 
@@ -50,6 +55,7 @@ Current state:
 
     @staticmethod
     def build_l4_context(memory, rover_state):
+        XLogger.log("class MemoryFormatter:", "build_l4_context")
         history = MemoryFormatter.format_recent_history(memory, n_steps=10)
         summary = MemoryFormatter.format_summary(memory, n_steps=10)
 

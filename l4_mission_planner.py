@@ -13,13 +13,17 @@ class L4MissionPlanner:
 
     def run_loop(self, steps=10, delay_s=1.0):
         #print("[L4] Starting mission loop")
-        XLogger.log("L4", "Starting mission loop")
+        XLogger.log("L4", "Starting mission loop ")
+        
         for i in range(steps):
+            
             #print(f"\n[L4] Step {i+1}/{steps}")
             #XLogger.log("L4", f"\n[L4] Step {i+1}/{steps}")
-            XLogger.log("L4", f"run_loop {i+1}/{steps}")
+            XLogger.log("L4", f"begin run loop {i+1}/{steps}" + "------------------------------------")
             self.step()
             time.sleep(delay_s)
+            XLogger.log("L4", f"end run loop {i+1}/{steps}" + "------------------------------------")
+
 
     def step(self):
         #print("[L4] step")

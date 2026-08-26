@@ -1,7 +1,9 @@
 from rover_interfaces import TacticalAction
+from utils.xlogger import XLogger
 
 class FallbackGuidance:
     def decide_action(self, rover_state, perception_state):
+        XLogger.log("class FallbackGuidance:", "decide_action")
         if perception_state.confidence < 0.5:
             return TacticalAction.HOLD
 

@@ -32,7 +32,7 @@ class L2TacticalPlanner:
     ):
         self.rover_client = rover_client
         self.perception_module = perception_module
-        self.world_builder = WorldBuilder()
+        #self.world_builder = WorldBuilder()
         self.llm_enabled = llm_enabled
         self.fallback_enabled = fallback_enabled
         self.llm = TacticalLLMDecisionMaker()

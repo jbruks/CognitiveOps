@@ -1,7 +1,11 @@
 from llm.prompt_framework import PromptBuilderBase
+from utils.xlogger import XLogger
+
 
 class L3TaskPromptBuilder(PromptBuilderBase):
     def build_context(self, rover_state, perception_state, memory):
+        XLogger.log("class L3TaskPromptBuilder:", "build_context")
+
         history_lines = []
 
         # ejemplo simple (ajústalo a tu estructura real)
@@ -35,18 +39,23 @@ class L3TaskPromptBuilder(PromptBuilderBase):
             """.strip()
 
     def build_rules(self):
+        XLogger.log("class L3TaskPromptBuilder:", "build_rules")
+
         return "Decide the behavior mode based on context."
 
     def build_output_format(self):
+        XLogger.log("class L3TaskPromptBuilder:", "build_output_format")        
         return "Output: MODE=<EXPLORE|RECOVER|CAUTIOUS>"
         
     def decide_task_mode(self, prompt):
+        XLogger.log("class L3TaskPromptBuilder:", "decide_task_mode")        
         #print("[LLM] task mode decision")
         return "MODE=EXPLORE"
         
 
 
     def build(self, context):
+        XLogger.log("class L3TaskPromptBuilder:", "build")        
         return f"""
         You are the task-level planner of an autonomous rover.
 

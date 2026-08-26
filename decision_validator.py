@@ -1,9 +1,13 @@
 from rover_interfaces import TacticalAction
+from utils.xlogger import XLogger
+
 
 class DecisionValidationError(Exception):
     pass
 
 def parse_llm_response(response_text: str) -> TacticalAction:
+    XLogger.log("class DecisionValidationError - ", "parse_llm_response")
+
     if not response_text:
         raise DecisionValidationError("Empty LLM response")
 
@@ -25,7 +29,7 @@ def parse_llm_response(response_text: str) -> TacticalAction:
         ) from exc
 
 def validate_action(action: TacticalAction, rover_state, perception_state) -> TacticalAction:
-    #print(f"[VALIDATION] Checking action {action} | mode={rover_state.mode} armed={rover_state.armed} confidence={perception_state.confidence}")
+    XLogger.log("class DecisionValidationError - ", "validate_action")
     if rover_state.mode not in ("GUIDED", "UNKNOWN"):
         if action in (
             TacticalAction.MOVE_FORWARD,

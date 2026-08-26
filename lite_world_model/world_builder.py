@@ -72,11 +72,12 @@ class WorldBuilder:
         # Minimal object population
         # =========================
 
-        if getattr(
-            perception_state,
-            "obstacle_detected",
-            False,
-        ):
+        #if getattr(
+        #    perception_state,
+        #    "obstacle_detected",
+        #    False,
+        #):
+        for obj in perception_state.objects:
 
             obstacle = ObjectNode(
                 id="obstacle_1",
@@ -115,5 +116,8 @@ class WorldBuilder:
         )
 
         self.world.regions.append(region)
+        
+        XLogger.log("WorldBuilder", "End update: "+f"objects={len(perception_state.objects)} " + f"regions={len(perception_state.regions)}")
+
 
         return self.world

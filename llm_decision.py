@@ -1,4 +1,4 @@
-
+from utils.xlogger import XLogger
 import os
 import base64
 from openai import OpenAI
@@ -20,6 +20,8 @@ class TacticalLLMDecisionMaker:
             self.client = OpenAI(api_key=api_key)
 
     def decide(self, prompt: str) -> str:
+        XLogger.log("class TacticalLLMDecisionMaker", "decide")
+
         if self.backend == "stub":
             return self._stub_response(prompt)
 
@@ -29,6 +31,7 @@ class TacticalLLMDecisionMaker:
         raise RuntimeError("Unsupported backend")
 
     def _openai_response(self, prompt: str):
+        XLogger.log("class TacticalLLMDecisionMaker", "_openai_response", )
 
         response = self.client.responses.create(
             model=self.model,
@@ -45,6 +48,7 @@ class TacticalLLMDecisionMaker:
         return text
 
     def _stub_response(self, prompt: str):
+        XLogger.log("class TacticalLLMDecisionMaker", "_stub_response")
 
         text = prompt.lower()
 
@@ -65,6 +69,7 @@ class TacticalLLMDecisionMaker:
         return "ACTION=HOLD"
         
     def decide_with_image(self, prompt: str, image_bytes: bytes) -> str:
+        XLogger.log("class TacticalLLMDecisionMaker", "decide_with_image")
         if self.backend == "stub":
             return self._stub_response(prompt)
 
@@ -74,6 +79,7 @@ class TacticalLLMDecisionMaker:
         raise RuntimeError("Unsupported backend")
         
     def _openai_response_with_image(self, prompt: str, image_bytes: bytes):
+        XLogger.log("class TacticalLLMDecisionMaker", "_openai_response_with_image")
         if not image_bytes:
             raise RuntimeError("Image bytes are required for multimodal decision")
 

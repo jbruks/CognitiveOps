@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from dataclasses import field
 from enum import Enum
+
 
 class TacticalAction(Enum):
     MOVE_FORWARD = "MOVE_FORWARD"
@@ -27,3 +29,5 @@ class PerceptionState:
     corridor_visible: bool
     summary: str = ""
     confidence: float = 1.0
+    objects: list = field(default_factory=list)
+    regions: list = field(default_factory=list)
