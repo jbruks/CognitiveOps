@@ -53,7 +53,7 @@ class L1RoverControler:
         )
         time.sleep(2.0)
         self._drain_input()
-        response = self._request("PING", expected_prefixes=("PONG",), required=False)
+        response = self._request("PING", expected_prefixes=("PONG",), required=True)
         if response:
             XLogger.log("L1", f"Controller ping OK: {response}")
         else:
@@ -153,14 +153,25 @@ class L1RoverControler:
 
     def _write_line(self, line: str):
         payload = (line.strip() + "\n").encode("utf-8")
+        
+        print(f"[L1 SERIAL TX] {payload!r}")
+        
         self.serial_conn.write(payload)
         self.serial_conn.flush()
 
     def _read_line(self):
         raw = self.serial_conn.readline()
+
         if not raw:
+            print("[L1 SERIAL RX] <timeout / no data>")
             return None
-        return raw.decode("utf-8", errors="replace").strip()
+
+        print(f"[L1 SERIAL RX RAW] {raw!r}")
+
+        response = raw.decode("utf-8", errors="replace").strip()
+        print(f"[L1 SERIAL RX] {response}")
+
+        return response
 
     def _drain_input(self):
         if self.serial_conn is None:
