@@ -154,7 +154,7 @@ class L1RoverControler:
     def _write_line(self, line: str):
         payload = (line.strip() + "\n").encode("utf-8")
         
-        print(f"[L1 SERIAL TX] {payload!r}")
+        #print(f"[L1 SERIAL TX] {payload!r}")
         
         self.serial_conn.write(payload)
         self.serial_conn.flush()
@@ -163,13 +163,13 @@ class L1RoverControler:
         raw = self.serial_conn.readline()
 
         if not raw:
-            print("[L1 SERIAL RX] <timeout / no data>")
+            #print("[L1 SERIAL RX] <timeout / no data>")
             return None
 
-        print(f"[L1 SERIAL RX RAW] {raw!r}")
+        #print(f"[L1 SERIAL RX RAW] {raw!r}")
 
         response = raw.decode("utf-8", errors="replace").strip()
-        print(f"[L1 SERIAL RX] {response}")
+        #print(f"[L1 SERIAL RX] {response}")
 
         return response
 
