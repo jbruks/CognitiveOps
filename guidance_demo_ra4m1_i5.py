@@ -15,7 +15,7 @@ def main():
     # =========================
     # L1 — Rover (RA4M1)
     # =========================
-    l1_rover_controler = L1RoverControler("/dev/ttyACM0")
+    l1_rover_controler = L1RoverControler("/dev/serial/by-id/usb-Arduino_UNO_WiFi_R4_CMSIS-DAP_3CDC7544B664-if01")
     l1_rover_controler.connect_and_prepare()
 
     # =========================
