@@ -7,6 +7,8 @@ from l4_mission_planner import L4MissionPlanner
 from lite_world_model import WorldBuilder
 from utils.xlogger import XLogger
 
+from l4_models import Mission, MissionTask
+
 def main():
     #print("[MAIN] Starting full autonomy stack")
     #print("___________________________________")
@@ -47,6 +49,16 @@ def main():
         perception_module=perception,
         memory_system=memory,
     )
+    
+    # =========================
+    # Mission — GO_TO_POINT
+    # =========================
+    mission = Mission(
+        task=MissionTask.GOTO,
+        target_lat=39.470000,
+        target_lon=-0.500000,
+        arrival_radius_m=2.0,
+    )
 
     # =========================
     # L4 — Mission Planner
@@ -56,7 +68,10 @@ def main():
         perception_module=perception,
         task_planner=l3,
         memory_system=memory,
+        mission=mission,
     )
+    
+   
 
     XLogger.log("MAIN", "Full autonomy stack initialized (L4 → L3 → L2 → L1)")
     
