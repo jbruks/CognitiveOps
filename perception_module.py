@@ -98,7 +98,11 @@ class PerceptionModule:
 
         if self.gps_enabled:
             try:
-                self.gps = GPSService()
+                #self.gps = GPSService()
+                self.gps = GPSService(
+                        history_size=120,
+                        min_heading_distance_m=3.0,
+                    )
                 self.gps.start()
                 XLogger.log("PerceptionModule", "GPSService started")
             except Exception as exc:
@@ -254,11 +258,16 @@ class PerceptionModule:
 
         if self.mode != "camera":
             state = self._observe_simulated()
+            world = self.worldbuilder.update(
+                rover_state=None,
+                perception_state=state,
+            )
+
             return PerceptionResult(
                 perception_state=state,
+                world_model=world,
                 gps_state=gps_state,
             )
-            #return state, None
             
         for _ in range(3):
             self.cap.grab()
@@ -569,19 +578,56 @@ RETURN EXACTLY THIS JSON SCHEMA
             XLogger.log("Perception - Observe_llm - Prompt Result:", text)
             
             data = json.loads(text)
-            navigation = data.get("navigation", {})
+            
+            
+            ##########################################
             objects = data.get("objects", [])
             regions = data.get("regions", [])
+
+            regions_by_name = {
+                region.get("name"): region
+                for region in regions
+            }
+
+            front = regions_by_name.get("front", {})
+            front_left = regions_by_name.get("front-left", {})
+            front_right = regions_by_name.get("front-right", {})
+            left = regions_by_name.get("left", {})
+            right = regions_by_name.get("right", {})
+
+            front_traversable = bool(front.get("traversable", False))
+            left_traversable = bool(
+                front_left.get("traversable", False)
+                or left.get("traversable", False)
+            )
+            right_traversable = bool(
+                front_right.get("traversable", False)
+                or right.get("traversable", False)
+            )
+
+            obstacle_ahead = not front_traversable
+
+            if front_traversable:
+                free_direction = "center"
+            elif left_traversable:
+                free_direction = "left"
+            elif right_traversable:
+                free_direction = "right"
+            else:
+                free_direction = "none"
+
             state = PerceptionState(
-                obstacle_ahead=len(objects) > 0,
-                free_direction=str(navigation.get("free_direction", "none")),
-                corridor_visible=bool(navigation.get("corridor_visible", False)),
+                obstacle_ahead=obstacle_ahead,
+                free_direction=free_direction,
+                corridor_visible=front_traversable,
                 summary=str(data.get("summary", "")),
-                confidence=float(data.get("confidence", 0.0)),
+                confidence=float(data.get("overall_confidence", 0.0)),
                 objects=objects,
                 regions=regions,
-                perception_prompt_result = response.output_text.strip()
+                perception_prompt_result=response.output_text.strip(),
             )
+            ##########################################
+            
 
             #state = PerceptionState(
             #    obstacle_ahead=bool(data.get("obstacle_ahead", False)),

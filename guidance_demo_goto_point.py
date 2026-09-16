@@ -45,6 +45,19 @@ def main():
         type=float,
         default=2.0,
         help="Arrival radius in meters (default: 2.0)",
+        
+    )
+    
+    parser.add_argument(
+        "--no-camera",
+        action="store_true",
+        help="Disable camera perception and assume a clear corridor",
+    )
+    
+    parser.add_argument(
+        "--autonomous",
+        action="store_true",
+        help="Execute tactical actions without operator approval",
     )
 
     args = parser.parse_args()
@@ -61,7 +74,13 @@ def main():
     # =========================
     # Perception
     # =========================
-    perception = PerceptionModule(mode="camera")
+    if args.no_camera:
+        perception = PerceptionModule(
+            mode="simulated",
+            default_scenario="corridor_forward",
+        )
+    else:
+        perception = PerceptionModule(mode="camera")
 
     # =========================
     # L2 — Tactical Navigation
@@ -72,6 +91,7 @@ def main():
         WorldBuilder,
         llm_enabled=True,
         fallback_enabled=True,
+        human_on_loop=not args.autonomous,
     )
 
     # =========================
@@ -119,30 +139,44 @@ def main():
     # =========================
     # GO_TO_POINT MISSION LOOP
     # =========================
-    old_terminal_settings = termios.tcgetattr(sys.stdin)
-
     try:
-        tty.setcbreak(sys.stdin.fileno())
+        execution_mode = "AUTONOMOUS" if args.autonomous else "SUPERVISED"
 
         XLogger.log(
             "MAIN",
-            "GO_TO_POINT mission started. Press 'q' to abort.",
+            f"GO_TO_POINT mission started. Mode={execution_mode}",
         )
 
         while mission.status != MissionStatus.COMPLETED:
+
+            # 1. Cognitive cycle:
+            #    Navigation -> L3 -> L2 -> [operator approval] -> L1
             l4.step()
 
             if mission.status == MissionStatus.COMPLETED:
                 break
 
-            key = key_pressed()
-
-            if key == "q":
+            # 2. In supervised mode, operator rejection aborts the mission.
+            #    L2 has already commanded HOLD.
+            if not args.autonomous and not l2_planner.last_action_approved:
                 mission.status = MissionStatus.ABORTED
-                XLogger.log("MAIN", "Mission aborted by operator")
+                XLogger.log(
+                    "MAIN",
+                    "Mission aborted by operator",
+                )
                 break
 
-            time.sleep(1.0)
+            # 3. Tactical action executes for a controlled interval.
+            XLogger.log(
+                "MAIN",
+                f"Executing tactical action for 3 seconds. Mode={execution_mode}",
+            )
+            time.sleep(3.0)
+
+            # 4. Physical STOP before starting a new cognitive cycle.
+            XLogger.log("MAIN", "Inter-cycle STOP")
+            l1_rover_controler.stop()
+        
 
     except KeyboardInterrupt:
         mission.status = MissionStatus.ABORTED
@@ -151,12 +185,6 @@ def main():
     finally:
         XLogger.log("MAIN", "Stopping rover")
         l1_rover_controler.stop()
-        termios.tcsetattr(
-            sys.stdin,
-            termios.TCSADRAIN,
-            old_terminal_settings,
-        )
-
 
 if __name__ == "__main__":
     main()

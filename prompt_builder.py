@@ -34,21 +34,21 @@ def build_tactical_prompt(rover_state, perception_state, l3_task, gps_state=None
         Current tactical task from L3:
         - task_type: {l3_task.get("task_type", "UNKNOWN")}
         - desired_direction: {l3_task.get("desired_direction", "UNKNOWN")}
+        - desired_heading_deg: {l3_task.get("desired_heading_deg", "UNKNOWN")}
+        - heading_error_deg: {l3_task.get("heading_error_deg", "UNKNOWN")}
+        - distance_remaining_m: {l3_task.get("distance_remaining_m", "UNKNOWN")}
         - task: {l3_task.get("task_text", "")}
         - priority: {l3_task.get("priority", "SAFETY_FIRST")}
 
         Current rover state:
         - mode: {rover_state.mode}
         - armed: {rover_state.armed}
-        - heading_deg: {rover_state.heading_deg}
         - speed_m_s: {rover_state.speed_m_s}
         - x: {rover_state.x}
         - y: {rover_state.y}
 
         GPS / movement state:
         - gps_fix_ok: {gps_state.get("gps_fix_ok", "UNKNOWN")}
-        - estimated_heading_cardinal: {gps_state.get("estimated_heading_cardinal", "UNKNOWN")}
-        - estimated_heading_deg: {gps_state.get("estimated_heading_deg", "UNKNOWN")}
         - movement_state: {gps_state.get("movement_state", "UNKNOWN")}
         - gps_confidence: {gps_state.get("confidence", "UNKNOWN")}
 
@@ -58,6 +58,9 @@ def build_tactical_prompt(rover_state, perception_state, l3_task, gps_state=None
         - corridor_visible: {perception_state.corridor_visible}
         - confidence: {perception_state.confidence}
         - summary: {perception_state.summary}
+        Detailed perception:
+        - regions: {perception_state.regions}
+        - objects: {perception_state.objects}
 
         Allowed actions:
         - {allowed_actions_str}
@@ -109,32 +112,21 @@ def build_tactical_prompt(rover_state, perception_state, l3_task, gps_state=None
         - W is 270 degrees
         - NW is 315 degrees
 
-        Direction following rules:
+       Direction following rules:
         - desired_direction from L3 is the direction you should generally follow
-        - estimated_heading_cardinal is the direction the rover is currently moving, if known
-        - Compare desired_direction with estimated_heading_cardinal using the compass model
-        - If the desired direction is clockwise from the current heading, prefer a right correction
-        - If the desired direction is counter-clockwise from the current heading, prefer a left correction
-        - If the current heading is already aligned with desired_direction, prefer forward movement
-        - If estimated_heading_cardinal is UNKNOWN, rely mainly on visual perception
+        - heading_error_deg from L3 is the authoritative orientation error
+        - A positive heading_error_deg means the target direction is to the rover's right
+        - A negative heading_error_deg means the target direction is to the rover's left
+        - A heading_error_deg close to zero means the rover is approximately aligned with the target direction
+        - If heading_error_deg is UNKNOWN, rely mainly on visual perception
         - If gps_confidence is LOW, rely mainly on visual perception
         - Safety always overrides direction following
-
-        Direction examples:
-        - current W, desired NW -> correct RIGHT
-        - current W, desired SW -> correct LEFT
-        - current N, desired NE -> correct RIGHT
-        - current N, desired NW -> correct LEFT
-        - current S, desired SW -> correct RIGHT
-        - current S, desired SE -> correct LEFT
-        - current E, desired NE -> correct LEFT
-        - current E, desired SE -> correct RIGHT
-
+    
         Action heuristics:
-        - If desired direction requires RIGHT correction and right/front-right is safe -> FORWARD_RIGHT
-        - If desired direction requires LEFT correction and left/front-left is safe -> FORWARD_LEFT
-        - If current heading is aligned with desired direction and path ahead is clear -> MOVE_FORWARD
-        - If heading is UNKNOWN and path ahead is clear -> MOVE_FORWARD
+        - If heading_error_deg is known and significantly positive, prefer FORWARD_RIGHT when right/front-right is safe
+        - If heading_error_deg is known and significantly negative, prefer FORWARD_LEFT when left/front-left is safe
+        - If heading_error_deg is close to zero and the path ahead is clear, prefer MOVE_FORWARD
+        - If heading_error_deg is UNKNOWN and the path ahead is clear, prefer MOVE_FORWARD
         - If obstacle_ahead is true, do not choose MOVE_FORWARD
         - If obstacle_ahead is true and left is clearer -> FORWARD_LEFT
         - If obstacle_ahead is true and right is clearer -> FORWARD_RIGHT
