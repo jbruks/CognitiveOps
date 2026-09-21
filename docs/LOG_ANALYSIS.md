@@ -83,17 +83,88 @@ terminate the mission automatically inside the configured 5 m arrival radius.
 This test should therefore be considered the navigation baseline for
 subsequent experiments involving real visual perception.
 
-
 ## 2. NAV+CAM — Initial camera integration
 
-**Log:** `goto_test_nav_cam_5.log`
+**Log:** `goto_test_nav_cam_20260917_OK.log`
 
 ### Test
+
+Autonomous GO_TO_POINT test with real camera perception enabled.
+
+The purpose of this test was to verify the integration of visual perception
+with the existing Navigation → Guidance → Tactical → Control loop.
+
+The test was performed in a relatively constrained garden environment,
+with the target located beyond the chalet/building area. Therefore, this
+was not intended as a clean point-to-point navigation validation.
+
 ### Result
+
+INTEGRATION SUCCESSFUL — MISSION NOT COMPLETED.
+
+The complete autonomous loop operated with real camera perception for
+29 cognitive cycles.
+
+Navigation and Guidance remained active while L2 adapted its tactical
+actions according to both the requested bearing and the perceived local
+environment.
+
+The run ended before reaching the GO_TO_POINT target.
+
 ### Key observations
+
+- Real camera perception was successfully incorporated into every
+  cognitive cycle.
+
+- L3 continuously generated FOLLOW_BEARING guidance from phone position
+  and attitude.
+
+- L2 did not simply follow the global bearing. Its actions changed according
+  to the locally perceived environment.
+
+- The rover used all four available movement primitives during the test:
+  MOVE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT and MOVE_BACKWARD.
+
+- Tactical action distribution:
+  - FORWARD_RIGHT: 8
+  - FORWARD_LEFT: 8
+  - MOVE_FORWARD: 7
+  - MOVE_BACKWARD: 6
+
+- Perception identified both traversable terrain and non-traversable
+  obstacles, including walls and other objects.
+
+- Local obstacle avoidance and conservative backward manoeuvres produced
+  deviations from the direct route requested by Guidance.
+
 ### Problems / limitations
+
+- The environment was relatively constrained and the destination was
+  located beyond the chalet/building area.
+
+- L2 only has local visual information and therefore cannot plan a global
+  route around a large obstacle such as a building.
+
+- Distance to the target did not decrease consistently. GPS uncertainty
+  and local tactical manoeuvres both contributed to this behaviour.
+
+- The mission was not completed, so this test cannot demonstrate autonomous
+  point-to-point navigation with perception.
+
 ### Conclusion
 
+This test demonstrates successful integration of real visual perception
+into the autonomous cognitive loop.
+
+It shows that L2 can combine global Guidance intent with local visual
+information and modify the rover's immediate behaviour accordingly.
+
+It also exposes an important architectural limitation: local tactical
+avoidance alone is not sufficient to solve navigation around large
+environmental structures that require strategic route planning.
+
+This test should therefore be considered an integration milestone rather
+than a GO_TO_POINT navigation success.
 
 ## 3. NAV+CAM TOLL — Field test
 
