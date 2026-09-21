@@ -382,9 +382,57 @@ limitations belong to Perception, L2 tactical reasoning or Navigation.
 
 ## 4. Overall findings
 
-Resumen de lo aprendido comparando las tres etapas.
+The three experiments show a progressive validation of the CognitiveOps
+autonomy architecture.
 
+The first NAV_OK test demonstrated the basic autonomous GO_TO_POINT loop
+under an assumed clear environment. Navigation and Guidance were sufficient
+to orient the rover, correct its trajectory and terminate the mission inside
+the configured arrival radius.
 
-## 5. Next development priorities
+The NAV+CAM integration test introduced real visual perception. It showed
+that L2 could combine the global direction requested by Guidance with local
+environmental information and modify its actions when the direct route was
+not appropriate. It also exposed the limitation of purely local tactical
+reasoning when facing larger environmental structures.
 
-Cambios que justifican las pruebas realizadas.
+The TOLL field test combined both capabilities over a longer and more
+realistic outdoor mission. The rover encountered vegetation, stones, branches,
+terrain boundaries and constrained passages while continuing to receive a
+global GO_TO_POINT objective.
+
+Across the three stages, the main architectural result is that global
+Guidance and local Tactical reasoning can operate as distinct but cooperating
+functions:
+
+Navigation determines the current state.
+Guidance continuously defines the direction toward the mission objective.
+Perception describes the immediate environment.
+L2 adapts the next local manoeuvre to that environment.
+L1 executes the selected physical primitive.
+
+The field test showed that a tactical deviation does not necessarily represent
+a navigation failure. L2 can temporarily prioritize local safety, after which
+Navigation and Guidance recompute the situation and attempt to recover
+progress toward the destination.
+
+This produces the intended closed-loop behaviour:
+
+Perception
+→ Navigation
+→ Guidance
+→ Tactical decision
+→ Control
+→ physical movement
+→ new observation
+→ recomputation
+
+The tests also showed that the principal limitations are no longer simply
+whether the rover can move autonomously toward a GPS target. The important
+remaining questions concern the quality of the information and decisions
+inside that loop: navigation uncertainty, perception reliability, tactical
+decision quality and recovery from local deviations.
+
+The current system should therefore be considered an operational experimental
+autonomy stack rather than a complete general-purpose autonomous navigation
+system.
