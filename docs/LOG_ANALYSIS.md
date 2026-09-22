@@ -177,6 +177,7 @@ than a GO_TO_POINT navigation success.
 
 - TOLL01: 83 images
 - TOLL02: 118 images
+- Total: 201 images
 
 ### Test
 
@@ -204,9 +205,11 @@ to both global direction and local conditions.
 
 After the initial log analysis, the complete recorded camera datasets were
 also inspected and correlated with the corresponding navigation, perception
-and tactical events. This made it possible to evaluate not only what the
-software reported, but also whether important tactical decisions were
-consistent with the physical scene observed by the rover.
+and tactical events.
+
+This made it possible to evaluate not only what the software reported, but
+also whether important tactical decisions were consistent with the physical
+scene observed by the rover.
 
 ### Result
 
@@ -236,33 +239,86 @@ navigation criterion despite local obstacle avoidance manoeuvres, substantial
 GPS uncertainty and repeated tactical deviations from the direct target
 direction.
 
+### Experimental data and timing
+
+The complete mission produced 201 recorded camera observations:
+
+- TOLL01: 83 images
+- TOLL02: 118 images
+
+All recorded images have a resolution of 320 × 240 pixels, corresponding to
+76,800 pixels per observation, and were stored as JPEG files.
+
+TOLL01 generated approximately 3.10 MiB of recorded image data, while TOLL02
+generated approximately 4.28 MiB.
+
+The complete mission therefore produced approximately 7.38 MiB of recorded
+camera data.
+
+Typical JPEG size was approximately 38–39 KB per image, with individual files
+ranging approximately from 22 KB to 55 KB.
+
+Image storage was consequently not a significant resource cost in this
+experiment.
+
+The relatively low 320 × 240 resolution was nevertheless sufficient for the
+system to identify operationally relevant environmental structures including
+vegetation, tree trunks, stones, branches, terrain boundaries and traversable
+corridors.
+
+This does not establish that 320 × 240 is an optimal perception resolution.
+It only establishes that this resolution contained sufficient visual
+information to support the behaviours observed during this field test.
+
+The complete two-part field experiment required at least approximately one
+hour of real elapsed time.
+
+This wall-clock duration was observed during the field experiment rather than
+reconstructed from log timestamps, because the current logs do not contain
+sufficiently granular timing information for each processing stage.
+
+During the experiment, a complete cognitive analysis cycle typically required
+at least approximately 15 seconds before physical execution.
+
+With 201 recorded observation cycles, this gives a lower-bound estimate of:
+
+201 cycles × ~15 s ≈ 3,015 s ≈ 50 minutes
+
+The logs additionally contain approximately 200 explicit physical execution
+windows of approximately 3 seconds:
+
+200 actions × 3 s ≈ 600 s ≈ 10 minutes
+
+The combination is therefore already approximately:
+
+~50 min cognitive processing
++ ~10 min physical execution
+= ~60 min
+
+before accounting for communication, STOP commands, transitions,
+startup, interruption/resume overhead and other delays.
+
+These values should be interpreted as approximate timing evidence rather than
+a precise performance benchmark. The ~15 s cognitive-cycle value is a field
+observation, while the ~3 s action windows are explicitly represented in the
+execution logs.
+
+The effective execution pattern was approximately:
+
+observe
+→ reason for ~15 s or more
+→ execute short primitive for ~3 s
+→ stop
+→ observe again
+
+The rover was therefore operating as a relatively slow sense–reason–act system
+rather than as a high-frequency continuous motion planner.
+
+This timing was acceptable for the slow rover and mostly static environment
+used in the experiment, but represents an important limitation for faster
+motion or dynamic environments.
+
 ### Key observations
-
-#### Global behaviour
-
-The rover made substantial global progress over the complete mission,
-reducing the reported target distance from approximately 69.6 m to
-approximately 4.7 m.
-
-TOLL01 was predominantly a progression and orientation-correction phase.
-Across 83 complete tactical cycles it executed approximately:
-
-- MOVE_FORWARD: 40
-- FORWARD_RIGHT: 35
-- FORWARD_LEFT: 5
-- MOVE_BACKWARD: 3
-
-TOLL02 contained a more complex local environment and produced more varied
-tactical behaviour. Across approximately 110 tactical actions:
-
-- MOVE_FORWARD: 32
-- FORWARD_RIGHT: 37
-- FORWARD_LEFT: 22
-- MOVE_BACKWARD: 19
-
-The larger number of saved TOLL02 images is expected because image capture
-also occurred during cycles that did not result in another normal tactical
-movement, including the final HOLD/completion sequence.
 
 #### Guidance and Tactical reasoning operated as distinct functions
 
@@ -273,9 +329,9 @@ When the local environment was clear and traversable, L2 generally allowed
 forward progress or selected a directional correction consistent with the
 heading error.
 
-When the immediate environment appeared unsafe, L2 could reject the locally
-direct implementation of the Guidance direction and select a conservative
-manoeuvre instead.
+When the immediate environment appeared unsafe, L2 could reject the direct
+implementation of the Guidance direction and select a conservative manoeuvre
+instead.
 
 The image/log correlation provides particularly strong evidence that L3 and
 L2 were performing different functions.
@@ -303,38 +359,44 @@ L3 should therefore continue to express where progress is desired, while L2
 is responsible for deciding whether and how that progress can be executed in
 the immediate physical environment.
 
-#### TOLL01 visual recovery episodes
+#### TOLL01 tactical recovery
 
-Image correlation confirmed that several MOVE_BACKWARD actions in TOLL01
-were justified by the observed environment.
+TOLL01 was predominantly a progression and orientation-correction phase.
+Across 83 tactical cycles it executed approximately:
+
+- MOVE_FORWARD: 40
+- FORWARD_RIGHT: 35
+- FORWARD_LEFT: 5
+- MOVE_BACKWARD: 3
+
+Image correlation confirmed that important MOVE_BACKWARD actions were
+consistent with the observed physical environment.
 
 A representative sequence occurred around images 0024–0025.
 
 At image 0024, the rover was facing dense vegetation with very little useful
-forward corridor. The detailed perception output described non-traversable
-vegetation across the frontal sectors and reported no clear approximately
-one-metre forward route.
+forward corridor. Detailed perception described non-traversable vegetation
+across the frontal sectors and no clear forward route.
 
 Guidance still required a substantial correction toward the right, but L2
 selected MOVE_BACKWARD instead of attempting to force progress into the
 vegetation.
 
-The following observation, image 0025, showed that backing away had changed
-the available geometry. Space for manoeuvring became visible again and L2
-selected FORWARD_RIGHT, returning to progress consistent with Guidance.
+The following observation showed that backing away had changed the available
+geometry. Space for manoeuvring became visible again and L2 selected
+FORWARD_RIGHT, returning to progress consistent with Guidance.
 
-A second and stronger sequence occurred around images 0070–0073.
+A stronger sequence occurred around images 0070–0073.
 
 The rover again approached dense vegetation that effectively blocked the
-forward field of view. Perception reported no usable forward direction and
-L2 selected MOVE_BACKWARD.
+forward field of view. L2 selected MOVE_BACKWARD.
 
-After further observation the environment remained constrained, resulting
-in another backward manoeuvre. Once additional space and a central corridor
+After further observation the environment remained constrained, resulting in
+another backward manoeuvre. Once additional space and a central corridor
 became visible, L2 changed to FORWARD_RIGHT and resumed progress toward the
 global objective.
 
-The observed sequence was therefore:
+The observed pattern was:
 
 local obstruction
 → MOVE_BACKWARD
@@ -344,11 +406,18 @@ local obstruction
 → traversable corridor becomes visible
 → directional forward movement resumes
 
-This is stronger evidence than the log alone that MOVE_BACKWARD sometimes
-acted as a useful tactical recovery manoeuvre rather than simply representing
-failed progress.
+This provides visual evidence that MOVE_BACKWARD sometimes acted as a useful
+tactical recovery manoeuvre rather than simply representing failed progress.
 
-#### TOLL02 recovery episode
+#### TOLL02 tactical behaviour and recovery
+
+TOLL02 contained a more complex local environment and produced more varied
+tactical behaviour. Across approximately 110 tactical actions:
+
+- MOVE_FORWARD: 32
+- FORWARD_RIGHT: 37
+- FORWARD_LEFT: 22
+- MOVE_BACKWARD: 19
 
 The beginning of TOLL02 exposed both a questionable tactical decision and a
 successful subsequent recovery.
@@ -360,37 +429,32 @@ significant vegetation, but L2 selected FORWARD_LEFT.
 The following image showed the rover at immediate range from dense vegetation,
 with essentially no safe frontal corridor.
 
-Perception then reported:
+Perception then reported an obstacle ahead, no free direction and no visible
+corridor. L2 correctly selected MOVE_BACKWARD.
 
-- obstacle ahead,
-- no free direction,
-- no visible corridor.
-
-L2 correctly selected MOVE_BACKWARD.
-
-After backing away, the next observations again exposed usable terrain,
-including a corridor toward the front/right. Guidance continued requesting a
-rightward correction and L2 selected FORWARD_RIGHT.
+After backing away, subsequent observation exposed usable terrain toward the
+front/right. Guidance continued requesting a rightward correction and L2
+selected FORWARD_RIGHT.
 
 The sequence can therefore be interpreted as:
 
 Guidance requests rightward progress
-→ questionable FORWARD_LEFT tactical action
+→ questionable FORWARD_LEFT action
 → rover reaches dense vegetation
 → MOVE_BACKWARD
 → new observation exposes usable space
 → FORWARD_RIGHT
 → progress resumes
 
-This episode is important because it demonstrates both the capability and the
-current limitation of L2. The rover can recover from an undesirable local
-state, but it does not yet explicitly reason about the fact that its previous
-action contributed to that state.
+This demonstrates both the capability and the current limitation of L2.
+
+The rover can recover from an undesirable local state, but it does not yet
+explicitly reason about the fact that its previous action contributed to that
+state.
 
 #### Recovery emerges from the closed loop
 
-Across both TOLL01 and TOLL02, the image/log correlation confirms the
-following recurring behaviour:
+Across TOLL01 and TOLL02, image/log correlation confirms a recurring behaviour:
 
 detect local obstruction
 → temporarily deviate from global Guidance
@@ -401,9 +465,10 @@ detect local obstruction
 → eventually resume progress toward the global objective
 
 This behaviour does not yet constitute deliberate local path planning.
+
 Each tactical decision is still primarily based on the current observation.
 
-Nevertheless, recovery can emerge from repeated execution of the full
+Nevertheless, recovery can emerge from repeated execution of the complete
 Perception–Navigation–Guidance–Tactical–Control loop.
 
 A backward action should therefore not automatically be interpreted as a
@@ -431,15 +496,7 @@ representing information such as:
 - a previously blocked direction has become available,
 - several tactical cycles have occurred without useful progress.
 
-For example, the beginning of TOLL02 could eventually be represented as:
-
-"I attempted local progress."
-→ "The resulting position is more obstructed."
-→ "I backed away."
-→ "A different corridor is now available."
-→ "Resume progress using the new corridor."
-
-Similarly, repeated local recovery without restored global progress may be
+Repeated local recovery without restored global progress may also be
 information that should eventually be visible to L3.
 
 This provides experimental motivation for Tactical Memory and Navigation
@@ -451,24 +508,19 @@ architecture.
 
 #### Rich perception versus simplified PerceptionState
 
-The image correlation also confirmed that the simplified PerceptionState can
-lose information that exists in the richer perception output.
+Image/log correlation confirmed that the simplified PerceptionState can lose
+information that exists in the richer perception output.
 
-For example, during one TOLL01 vegetation encounter, the detailed perception
+During at least one TOLL01 vegetation encounter, the detailed perception
 described frontal vegetation as non-traversable and reported that no clear
-forward route was available, while the simplified representation still
-indicated a more optimistic local state.
+forward route was available, while the simplified representation indicated a
+more optimistic local state.
 
-L2 nevertheless selected MOVE_BACKWARD because its decision had access to
-the camera image and richer perception context.
+L2 nevertheless selected MOVE_BACKWARD because its decision also had access
+to the camera image and richer perception context.
 
-This indicates that:
-
-rich environmental interpretation
-→ simplified world representation
-→ tactical decision
-
-is not currently information-preserving.
+This indicates that the transformation from rich environmental interpretation
+to simplified world representation is not currently information-preserving.
 
 The simplified state remains useful as a compact interface, but its semantics
 and reduction rules require further validation before it can be treated as
@@ -477,19 +529,20 @@ the complete representation of local traversability.
 #### Perception was useful but sometimes conservative
 
 The recorded images confirm that Perception was not merely producing
-decorative information. Vegetation, trunks, stones, branches, rough ground,
-terrain boundaries and visible corridors materially affected tactical
-decisions.
+decorative information.
+
+Vegetation, trunks, stones, branches, rough ground, terrain boundaries and
+visible corridors materially affected tactical decisions.
 
 At the same time, some scenes suggest conservative interpretation of terrain
 that the crawler may physically be capable of traversing, including small
 stones, gravel and moderately irregular ground.
 
-The present evidence is sufficient to identify this as an area for further
-testing, but not to define new traversability thresholds yet.
+The present evidence identifies this as an area for further testing but does
+not justify defining new traversability thresholds yet.
 
-The important distinction for future work is likely to be richer than simply
-"traversable" versus "non-traversable", for example:
+A future representation may need to distinguish more than simply traversable
+versus non-traversable, for example:
 
 SAFE AND EASY
 → SAFE BUT DIFFICULT
@@ -497,23 +550,21 @@ SAFE AND EASY
 → NON-TRAVERSABLE
 → DANGEROUS
 
-Such a distinction should be validated experimentally against the physical
-capabilities of the rover rather than inferred from visual appearance alone.
+Such categories should be validated experimentally against the physical
+capabilities of the rover.
 
 #### Navigation uncertainty became dominant near the target
 
 Navigation remained a significant source of uncertainty throughout the
 mission.
 
-GPS accuracy varied considerably. Samples could be fresh while still having
-poor positional accuracy, demonstrating that freshness and accuracy are
-different properties.
+GPS samples could be fresh while still having poor positional accuracy,
+demonstrating that freshness and accuracy are different properties.
 
 This became particularly important during the final approach.
 
 When the reported distance to the target was approximately 9.77 m, one GPS
-sample reported an accuracy of approximately 13.49 m. The uncertainty was
-therefore already larger than the remaining target distance.
+sample reported an accuracy of approximately 13.49 m.
 
 During the final cycle:
 
@@ -534,16 +585,6 @@ However, the experiment does not establish that the rover was physically
 It establishes that the current navigation estimate entered the configured
 arrival radius.
 
-This distinction becomes important as the system evolves toward more precise
-mission completion criteria.
-
-#### Position freshness and position accuracy are different
-
-Temporary invalid or stale navigation conditions correctly caused Guidance
-to enter HOLD rather than continuing movement using invalid navigation data.
-
-However, a fresh navigation sample can still have poor spatial accuracy.
-
 The experiment therefore identifies two independent navigation questions:
 
 1. Is this navigation information recent enough to use?
@@ -553,39 +594,39 @@ The experiment therefore identifies two independent navigation questions:
 The current system handles the first question more explicitly than the
 second.
 
-This matters particularly for terminal decisions, where the scale of GPS
-uncertainty can be comparable to or larger than the mission completion
-radius.
-
 ### Problems / limitations
 
-- Phone GPS accuracy was poor relative to the 5 m arrival radius, especially
-  during TOLL02. Mission completion therefore represents satisfaction of the
-  implemented navigation estimate, not independently verified physical
-  proximity to the target.
+- Phone GPS accuracy was poor relative to the 5 m arrival radius. Mission
+  completion therefore represents satisfaction of the implemented navigation
+  estimate, not independently verified physical proximity to the target.
 - GPS accuracy is observed and logged but is not yet fully incorporated into
   the confidence placed in Guidance or the mission-completion criterion.
+- Cognitive latency was high relative to physical action duration. A
+  cognitive cycle typically required at least approximately 15 seconds,
+  while a movement primitive lasted approximately 3 seconds.
+- The rover therefore operated using a stop-and-reason pattern suitable for
+  slow movement in a mostly static environment, but this timing would be a
+  significant limitation for faster vehicles or dynamic scenes.
+- The current logs do not provide sufficiently granular timestamps to
+  determine Perception, L2, L3 and communication latency independently.
 - L2 remains primarily reactive. It does not explicitly remember recently
-  attempted passages, unsuccessful manoeuvres or repeated local recovery
-  attempts.
+  attempted passages, unsuccessful manoeuvres or repeated recovery attempts.
 - The rover does not yet maintain a sufficiently rich persistent spatial
   representation for deliberate route planning around large obstacles.
 - Some tactical decisions were questionable. In particular, the initial
-  FORWARD_LEFT action in TOLL02 moved contrary to the requested rightward
-  correction and was followed by an immediate vegetation encounter.
+  FORWARD_LEFT action in TOLL02 was followed by an immediate vegetation
+  encounter.
 - MOVE_BACKWARD is sometimes clearly justified and useful, as confirmed by
-  the images, but this does not establish that every backward manoeuvre in the
-  complete mission was necessary or optimal.
+  the images, but this does not establish that every backward manoeuvre in
+  the complete mission was necessary or optimal.
 - Perception sometimes appears conservative when evaluating rough but
   potentially traversable terrain.
 - The simplified PerceptionState can omit or distort information present in
   the richer perception output.
-- Tactical steering remains based on discrete fixed-duration primitives.
-  Heading correction therefore produces repeated left/right/forward actions
+- Tactical steering remains based on discrete fixed-duration primitives
   rather than smooth continuous trajectory control.
-- The two logs represent a mission that was interrupted and resumed.
-  Consequently, the transition between TOLL01 and TOLL02 is not a continuous
-  autonomous execution and should not be interpreted as such.
+- The transition between TOLL01 and TOLL02 was interrupted and should not be
+  interpreted as continuous autonomous execution.
 - The test demonstrates local reactive recovery, but not persistent local
   planning, global obstacle-aware route planning or general navigation in
   arbitrary environments.
@@ -603,10 +644,6 @@ objective.
 Tactical reasoning determines whether and how that requested progress can be
 executed safely in the immediate environment.
 
-The large-tree episode in TOLL02 provides a particularly clear example:
-Guidance was almost perfectly aligned with the target while the physical path
-was locally blocked.
-
 Therefore:
 
 correct Guidance ≠ safe local action
@@ -615,8 +652,8 @@ and:
 
 temporary tactical deviation ≠ navigation failure
 
-The experiments also provide the first direct field evidence for introducing
-temporal reasoning into the architecture.
+The experiments also provide direct field evidence for introducing temporal
+reasoning into the architecture.
 
 The requirement should initially be expressed as a capability rather than an
 implementation:
@@ -632,18 +669,25 @@ Mission Memory is expected to become important for richer reconnaissance
 missions, but GO_TO_POINT alone does not yet provide sufficient evidence to
 define its detailed requirements.
 
-The experiments therefore justify investigating Memory, but do not yet
-justify selecting a specific memory implementation.
+The experiment also establishes an approximate performance baseline for the
+current cognitive implementation:
+
+- cognitive cycle: approximately 15 seconds or more,
+- physical primitive: approximately 3 seconds,
+- recorded image resolution: 320 × 240,
+- complete image dataset: approximately 7.38 MiB.
+
+Future changes such as onboard inference should be compared quantitatively
+against this baseline rather than assumed to improve performance.
+
+Future field tests should therefore instrument explicit timestamps around
+camera acquisition, Perception inference, WorldModel update, Navigation,
+Guidance, Tactical inference, command transmission and physical execution.
 
 ### Conclusion
 
 This is the strongest field validation of the CognitiveOps autonomy
 architecture obtained so far.
-
-Unlike NAV_OK, the mission was not performed under simulated clear-perception
-conditions. Unlike the initial NAV+CAM experiment, it was performed over a
-route where the rover could make meaningful global progress while interacting
-with real environmental constraints.
 
 The experiment demonstrates that the current architecture can combine:
 
@@ -666,7 +710,7 @@ The strongest architectural result is therefore not simply that the rover
 reached a GPS objective.
 
 The experiment demonstrates a closed loop in which global Guidance and local
-visual tactical reasoning remained distinct:
+visual Tactical reasoning remained distinct:
 
 global objective
 → Guidance
@@ -689,7 +733,8 @@ system:
 - local recovery is reactive rather than deliberately planned,
 - navigation accuracy is not yet fully represented in decision confidence,
 - terminal mission completion can occur at a scale comparable to GPS
-  uncertainty.
+  uncertainty,
+- cognitive processing is slow relative to physical action execution.
 
 The result should therefore not be interpreted as demonstrating general
 autonomous navigation in arbitrary environments.
@@ -705,12 +750,11 @@ completion was satisfied.
 
 The image-correlated analysis also converts several previously theoretical
 architecture questions into experimentally motivated requirements,
-particularly Tactical Memory, Navigation Memory and explicit treatment of
-navigation uncertainty.
+particularly Tactical Memory, Navigation Memory, explicit treatment of
+navigation uncertainty and improved timing instrumentation.
 
 These requirements should be investigated through further field experiments
 before committing to specific implementations.
-
 ## 4. Overall findings
 
 The three experiments show a progressive validation of the CognitiveOps
