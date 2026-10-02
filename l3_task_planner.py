@@ -126,20 +126,28 @@ class L3TaskPlanner:
             "priority": "SAFETY_FIRST",
         }
 
+        observability = {
+            "position_accuracy_m": phone_position.horizontal_accuracy_m,
+            "position_fresh": phone_position.fresh,
+            "heading_fresh": phone_attitude.fresh,
+            "navigation_state": navigation_state,
+            "guidance_task": guidance_task,
+        }
+
         action, decision_info, prompt, source = self.l2_planner.step(
             rover_state,
             result,
             l3_task,
+            observability=observability,
         )
-
         self.memory.update_step(
             rover_state,
             result.perception_state,
             action,
         )
-        
+
         self._last_commanded_action = action
-        
+
         return action
 
     def build_navigation_state(
@@ -292,8 +300,8 @@ class L3TaskPlanner:
         else:
             navigation_state.heading_deg = None
             navigation_state.heading_valid = False
-            
-   
+
+
     def plan_guidance(self, navigation_state, mission):
         if mission.task != MissionTask.GOTO:
             return GuidanceTask(
@@ -411,7 +419,7 @@ class L3TaskPlanner:
         return directions[index]
 
 
-    
+
     def decide_mode(self, rover_state, perception_state):
         XLogger.log("L3", "decide_mode (LLM)")
         # =========================

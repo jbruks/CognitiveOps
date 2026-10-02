@@ -255,7 +255,9 @@ class PerceptionModule:
         LLM-based perception + image output
         """
         gps_state = self._observe_gps()
+        
 
+        
         if self.mode != "camera":
             state = self._observe_simulated()
             world = self.worldbuilder.update(
@@ -269,10 +271,14 @@ class PerceptionModule:
                 gps_state=gps_state,
             )
             
+        XLogger.log("Perception", "Camera capture START") 
+        
         for _ in range(3):
             self.cap.grab()
             
         ret, frame = self.cap.read()
+
+        XLogger.log("Perception", "Camera capture END")
 
         if not ret:
             return PerceptionResult(
@@ -285,6 +291,9 @@ class PerceptionModule:
                 ),
                 gps_state=gps_state,
             )
+        
+        XLogger.log("Perception", "Image preprocessing START")
+        
         frame = cv2.resize(frame, (320, 240))
         ok, buffer = cv2.imencode(".jpg", frame)
         image_bytes = buffer.tobytes() if ok else None
@@ -558,7 +567,12 @@ RETURN EXACTLY THIS JSON SCHEMA
     - Focus on obstacles and traversability
     """
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+        
+        XLogger.log("Perception", "Image preprocessing END")
+        
         try:
+            XLogger.log("Perception", "LLM request START")
+            
             response = self.llm_client.responses.create(
                 model="gpt-5.4",
                 input=[
@@ -573,6 +587,9 @@ RETURN EXACTLY THIS JSON SCHEMA
                 temperature=0,
                 max_output_tokens=2000,
             )
+            
+            XLogger.log("Perception", "LLM request END")
+                
             text = response.output_text.strip()
             
             XLogger.log("Perception - Observe_llm - Prompt Result:", text)

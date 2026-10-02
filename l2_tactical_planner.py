@@ -44,20 +44,20 @@ class L2TacticalPlanner:
         #os.makedirs(self.output_dir, exist_ok=True)
         # 🔢 contador global
         #self.sim_counter = 0
-        
+
     def decide_action_with_llm(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
-    
+
         XLogger.log("L2", "Decide action with llm ...")
 
-        
+
         prompt = build_tactical_prompt(
             rover_state,
             perception_state,
             l3_task,
             gps_state,
         )
-        
-        
+
+
         # DEBUG: ver exactamente qué recibe L2
         XLogger.log("L2", f"Tactical prompt:\n{prompt}")
 
@@ -84,14 +84,14 @@ class L2TacticalPlanner:
         XLogger.log("L2", f"Validated action: {validated_action.value}")
 
         return validated_action, raw_response, prompt
-    
+
     def decide_action(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
-        XLogger.log("L2", "Decide_action...")     
+        XLogger.log("L2", "Decide_action...")
         if not self.llm_enabled:
             fallback_action = self.fallback.decide_action(rover_state, perception_state)
             return fallback_action, "FALLBACK_ONLY", None, "fallback"
         try:
-            
+
             action, raw_response, prompt = self.decide_action_with_llm(
                 rover_state,
                 perception_state,
@@ -99,9 +99,9 @@ class L2TacticalPlanner:
                 l3_task,
                 gps_state,
             )
-            
-            
-            
+
+
+
             return action, raw_response, prompt, "llm"
 
         except (DecisionValidationError, RuntimeError, ValueError) as exc:
@@ -113,22 +113,22 @@ class L2TacticalPlanner:
 
             raise
 
-    def step(self, rover_state, result, l3_task):
-        XLogger.log("L2", "step") 
-        
+    def step(self, rover_state, result, l3_task, observability=None):
+        XLogger.log("L2", "step")
+
         # 🔢 incrementar contador global
         #self.sim_counter += 1
-        #sim_id = self.sim_counter        
+        #sim_id = self.sim_counter
         # 💾 guardar imagen
         #if image_bytes is not None:
         #    filename = f"{sim_id:04d}.jpg"
         #    filepath = os.path.join(self.output_dir, filename)
         #with open(filepath, "wb") as f:
-        #    f.write(image_bytes)   
+        #    f.write(image_bytes)
         #XLogger.log("L2", f"step [SIM {sim_id:04d}] Image saved → {filepath}")
-        result.world_model.semantic_summary()
-        #XLogger.log("L2", "step: " + s) 
-        
+        semantic_summary = result.world_model.semantic_summary()
+        #XLogger.log("L2", "step: " + s)
+
         action, decision_info, prompt, source = self.decide_action(
             rover_state,
             result.perception_state,
@@ -136,12 +136,47 @@ class L2TacticalPlanner:
             l3_task,
             result.gps_state,
         )
-        
+
         action = self._apply_safety_envelope(
             action,
             result.perception_state,
         )
-        
+
+        # Compact pre-action observability for field tests.
+        if observability is not None:
+            nav = observability["navigation_state"]
+            guidance = observability["guidance_task"]
+            perception = result.perception_state
+
+            XLogger.log(
+                "CYCLE",
+                (
+                    "\n========== TACTICAL CYCLE ==========\n"
+                    "PERCEPTION\n"
+                    f"  obstacle_ahead : {perception.obstacle_ahead}\n"
+                    f"  free_direction : {perception.free_direction}\n"
+                    f"  confidence     : {perception.confidence}\n"
+                    f"  summary        : {semantic_summary}\n"
+                    "\n"
+                    "NAVIGATION\n"
+                    f"  position       : {nav.latitude}, {nav.longitude}\n"
+                    f"  gps_accuracy   : {observability['position_accuracy_m']} m\n"
+                    f"  heading        : {nav.heading_deg} deg\n"
+                    f"  position_fresh : {observability['position_fresh']}\n"
+                    f"  heading_fresh  : {observability['heading_fresh']}\n"
+                    "\n"
+                    "GUIDANCE\n"
+                    f"  target_bearing : {guidance.desired_heading_deg} deg\n"
+                    f"  heading_error  : {guidance.heading_error_deg} deg\n"
+                    f"  distance       : {guidance.distance_remaining_m} m\n"
+                    "\n"
+                    "TACTICAL\n"
+                    f"  action         : {action.value}\n"
+                    "===================================="
+                ),
+            )
+
+
         #if LLM_DEBUG:
         #    print("\n=== Guidance Step ===")
         #    print(f"Rover state: {rover_state}")
@@ -157,16 +192,16 @@ class L2TacticalPlanner:
             approved = True
 
         self.last_action_approved = approved
-        
+
         if approved:
             self.rover_client.execute_tactical_action(action)
         else:
             XLogger.log("L2", "[USER] Action rejected → HOLD")
             action = TacticalAction.HOLD
             self.rover_client.execute_tactical_action(action)
-            
-        return action, decision_info, prompt, source   
-            
+
+        return action, decision_info, prompt, source
+
     def _apply_safety_envelope(self, action, perception_state):
         """
         Hard local safety veto.
@@ -244,7 +279,7 @@ class L2TacticalPlanner:
                 return TacticalAction.HOLD
 
         return action
-    
+
     def _request_user_approval(self, action, l3_task):
         try:
             target_heading = l3_task.get("desired_heading_deg")
@@ -284,12 +319,12 @@ class L2TacticalPlanner:
         except KeyboardInterrupt:
             XLogger.log("L2", "[USER] Interrupted → rejecting action")
             return False
-        
+
     def run_loop(self, steps=10, delay_s=1.0):
         i=0
         for _ in range(steps):
             XLogger.log("L2", f"[LOOP] Loop {i+1}/{Loops}")
-            
+
             i=i+1
             self.step()
             time.sleep(delay_s)

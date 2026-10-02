@@ -85,6 +85,8 @@ class TacticalLLMDecisionMaker:
 
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
+        XLogger.log("L2", "LLM request START")
+        
         response = self.client.responses.create(
             model=self.model,
             input=[
@@ -105,6 +107,8 @@ class TacticalLLMDecisionMaker:
             temperature=0,
             max_output_tokens=20,
         )
+        
+        XLogger.log("L2", "LLM request END")
 
         text = response.output_text.strip()
 
