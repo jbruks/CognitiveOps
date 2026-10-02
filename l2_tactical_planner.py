@@ -61,13 +61,7 @@ class L2TacticalPlanner:
         # DEBUG: ver exactamente qué recibe L2
         XLogger.log("L2", f"Tactical prompt:\n{prompt}")
 
-        if image_bytes:
-            raw_response = self.llm.decide_with_image(
-                prompt,
-                image_bytes,
-            )
-        else:
-            raw_response = self.llm.decide(prompt)
+        raw_response = self.llm.decide(prompt)
 
         XLogger.log("L2", f"LLM raw response: {raw_response}")
 

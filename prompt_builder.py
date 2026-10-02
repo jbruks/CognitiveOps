@@ -13,13 +13,14 @@ def build_tactical_prompt(rover_state, perception_state, l3_task, gps_state=None
         You are the tactical navigation module of an autonomous rover.
 
         You are given:
-        1. A camera image of the environment
-        2. A perception summary (may be incomplete or approximate)
-        3. The current rover state
-        4. A tactical task from L3
-        5. GPS / movement heading information, when available
+            1. A structured visual perception of the environment
+            2. The current rover state
+            3. A tactical task from L3
+            4. GPS / movement heading information, when available
 
-        Use BOTH the image and the perception summary to decide.
+        Use the structured perception to understand the immediate local environment.
+        Do not assume access to the camera image.
+
         Use the L3 task to understand the desired general direction.
         Use GPS heading only as movement/orientation context.
 

@@ -83,11 +83,13 @@ class PerceptionModule:
         default_scenario: str = "corridor_forward",
         scenario_sequence: Optional[List[str]] = None,
         loop_sequence: bool = True,
-        gps_enabled=True
+        gps_enabled=True,
+        max_output_tokens: int = 500,
         
     ):
         XLogger.log("PerceptionModule", "__init__")
         self.mode = mode
+        self.max_output_tokens = max_output_tokens
         self.worldbuilder = WorldBuilder()
 
         # --- GPS SETUP ---
@@ -320,213 +322,98 @@ class PerceptionModule:
 
         # 🧠 LLM percepción
         
+
+
         perception_prompt = """
-You are the perception and navigation layer of an autonomous ground rover using a low-resolution monocular RGB web camera.
+You are the visual perception layer of an autonomous ground rover.
 
-Your task is to analyze a single camera frame and generate ONLY valid JSON describing:
+Analyze the camera image and describe the immediate environment for local navigation.
 
-* terrain
-* traversability
-* obstacles
-* visibility
-* navigation
+The rover is a small 4x4 off-road crawler approximately 0.30 m wide.
+It can traverse grass, dirt, gravel, small rocks, pavement, and slightly uneven terrain.
 
-The rover platform is:
+Evaluate these five rover-relative regions:
 
-* AXIAL SCX III 1:10 crawler
-* 4x4 traction
-* Length: 0.50 meters
-* Width: 0.30 meters
-* Height: 0.30 meters
-* Speed: 3 km/h
-* Navigation step size: 1 meter
-* Camera mounted 25cm from ground level
+- left
+- front-left
+- front
+- front-right
+- right
 
-The rover operates outdoors on:
+For each region determine:
+- traversable: whether the rover can safely drive through it
+- risk_level: "low", "medium", or "high"
 
-* grass
-* dirt
-* stone
-* pavement
-* uneven terrain
+Report only relevant visible obstacles.
 
-==================================================
-PERCEPTION RULES
-================
+For each obstacle provide:
+- type
+- position.region
+- approximate distance_m
+- traversable
 
-* Be conservative and safety-oriented
-* NEVER hallucinate unseen objects
-* Infer ONLY what is visually observable
-* If uncertain, reduce confidence
-* Monocular depth estimation is approximate
-* Small obstacles may be partially hidden by grass
-* Assume the rover moves on the ground plane
-* Use rover-centric coordinates and directions
-* Focus on immediate traversability
-* Prefer false negatives over false positives
-* Do not invent terrain behind obstacles
-* Avoid overestimating visibility range
-* Distances are approximate
-* Terrain beyond visibility range is unknown
+Perception rules:
+- Infer only what is visually observable.
+- Do not invent unseen obstacles.
+- Distances from a monocular camera are approximate.
+- Grass and moderately rough continuous terrain are normally traversable.
+- Dense vegetation, walls, large obstacles, steep drops, water, and clearly blocked areas are not traversable.
+- Pay particular attention to obstacles within 0.5 m of the rover.
+- If uncertain, be conservative and reduce overall_confidence.
+- Do not infer mission intent or choose a rover action.
+- Describe the environment only.
 
-==================================================
-FIELD OF VIEW MODEL
-===================
+Return ONLY valid JSON.
+No markdown, comments, explanations, or additional text.
 
-Assume camera field of view:
-
-* Horizontal FOV: 70 degrees
-* Vertical FOV: 50 degrees
-
-Divide image horizontally into:
-
-* LEFT: 30° to 60°
-* FRONT-LEFT: 60° to 85°
-* FRONT: 85° to 95°
-* FRONT-RIGHT: 95° to 120°
-* RIGHT: 120° to 150°
-
-Distance bands:
-
-* IMMEDIATE: 0.0m to 0.5m
-* NEAR: 0.5m to 2.0m
-* MID: 2.0m to 5.0m
-* FAR: 5.0m to visibility limit
-
-==================================================
-TRAVERSABILITY RULES
-====================
-
-Terrain is traversable when:
-
-* slope is low
-* no large obstacle is visible
-* terrain roughness is acceptable
-* estimated obstacle height is below wheel capability
-
-Terrain is NOT traversable when:
-
-* wall
-* deep hole
-* large rock
-* water
-* dense vegetation
-* obstacle larger than wheel clearance
-* unknown unsafe region
-
-Grass is usually traversable.
-Tile edges smaller than 5 cm are traversable.
-Small grass clumps are traversable.
-Dense bushes and walls are not traversable.
-
-==================================================
-OBJECT SIZE RULES
-=================
-
-Object size is estimated radius in centimeters.
-
-Examples:
-
-* small stone: 20
-* grass clump: 5
-* plant pot: 20
-* chair: 35
-* bush: 100
-
-==================================================
-CONFIDENCE RULES
-================
-
-Confidence range:
-
-* 0.90 to 1.00 = very clear
-* 0.70 to 0.89 = probable
-* 0.40 to 0.69 = uncertain
-* below 0.40 = weak evidence
-
-Low-resolution or distant objects must reduce confidence.
-
-==================================================
-OUTPUT RULES
-============
-
-* Output ONLY valid JSON
-* No markdown
-* No explanations
-* No comments
-* No extra text
-* Use meters
-* Use decimal numbers
-* Use null when estimation is unreliable
-* Keep summary concise and technical
-* All JSON keys must always exist
-* Arrays must exist even if empty
-
-==================================================
-RETURN EXACTLY THIS JSON SCHEMA
-===============================
+Return exactly this structure:
 
 {
-"frame_context": 
-{
-"camera_height_m": 0.12,
-"estimated_pitch_deg": -5,
-"horizontal_fov_deg": 70,
-"vertical_fov_deg": 50
-},
-
-"regions": 
-[
-{
-"name": "front",
-"azimuth_range_deg": [85, 95],
-"distance_range_m": [0.5, 5.0],
-"surface_type": "grass",
-"terrain_roughness": "low",
-"estimated_friction": "medium",
-"slope": "0 degrees",
-"traversable": true,
-"risk_level": "low",
-"confidence": 0.82
-}
-],
-
-"objects": 
-[
-{
-  "type": "chair",
-  "category": "static_obstacle",
-  "position": 
-  {
-    "region": "left",
-    "azimuth_deg": 42
-  },
-  "distance_m": 5.8,
-  "size_radius_m": 0.35,
-  "estimated_height_m": 0.8,
-  "traversable": false,
-  "risk_level": "low",
-  "confidence": 0.84
-}
-],
-
-
-"visibility": 
-{
-"lighting": "good",
-"image_quality": "medium",
-"visible_range_m": 8.0
-},
-
-
+  "regions": [
+    {
+      "name": "left",
+      "traversable": true,
+      "risk_level": "low"
+    },
+    {
+      "name": "front-left",
+      "traversable": true,
+      "risk_level": "low"
+    },
+    {
+      "name": "front",
+      "traversable": true,
+      "risk_level": "low"
+    },
+    {
+      "name": "front-right",
+      "traversable": true,
+      "risk_level": "low"
+    },
+    {
+      "name": "right",
+      "traversable": true,
+      "risk_level": "low"
+    }
+  ],
+  "objects": [
+    {
+      "type": "obstacle",
+      "position": {
+        "region": "front"
+      },
+      "distance_m": 1.0,
+      "traversable": false
+    }
+  ],
+  "summary": "Concise description of immediate traversability and relevant obstacles.",
+  "overall_confidence": 0.8
 }
 
-"summary": "Flat paved terrain ahead with sparse grass. Central region is traversable with low collision risk.",
-
-"overall_confidence": 0.84
-}   
-
-"""     
+All five regions must always be present.
+The objects array must always be present and may be empty.
+overall_confidence must be between 0.0 and 1.0.
+"""
         
         
         
@@ -585,7 +472,7 @@ RETURN EXACTLY THIS JSON SCHEMA
                     }
                 ],
                 temperature=0,
-                max_output_tokens=2000,
+                max_output_tokens=self.max_output_tokens,
             )
             
             XLogger.log("Perception", "LLM request END")

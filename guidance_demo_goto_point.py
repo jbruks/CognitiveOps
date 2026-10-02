@@ -59,6 +59,13 @@ def main():
         action="store_true",
         help="Execute tactical actions without operator approval",
     )
+    
+    parser.add_argument(
+        "--perception-max-tokens",
+        type=int,
+        default=500,
+        help="Maximum output tokens for the perception LLM (default: 500)",
+    )
 
     args = parser.parse_args()
     #print("[MAIN] Starting full autonomy stack")
@@ -80,7 +87,10 @@ def main():
             default_scenario="corridor_forward",
         )
     else:
-        perception = PerceptionModule(mode="camera")
+        perception = PerceptionModule(
+            mode="camera",
+            max_output_tokens=args.perception_max_tokens,
+        )
 
     # =========================
     # L2 — Tactical Navigation
