@@ -1,0 +1,14 @@
+# Local Python environments
+.venv-*/
+
+# External repositories used during evaluation
+GA-Nav/
+GOOSE-Official/
+OFFSEG/
+PP-LiteSeg-Code/
+SwiftNet-RELLIS/
+
+# Downloaded model checkpoints
+*.pth
+*.pt
+*.onnx
