@@ -811,3 +811,50 @@ decision quality and recovery from local deviations.
 The current system should therefore be considered an operational experimental
 autonomy stack rather than a complete general-purpose autonomous navigation
 system.
+
+## Local Perception Feasibility Study
+
+A separate experimental investigation was performed in the
+`experiment/local-perception` branch to evaluate whether the remote
+VLM-based perception pipeline could be replaced or complemented by faster
+local perception models.
+
+FastSeg, OFFSEG, SwiftNet/RELLIS, GA-Nav, and GOOSE PP-LiteSeg were
+investigated.
+
+Fast local semantic segmentation proved technically feasible. Representative
+results included approximately 46–53 ms for FastSeg using CPU/OpenVINO,
+approximately 66 ms for OFFSEG using PyTorch CPU, and approximately 148 ms
+mean inference time for GOOSE PP-LiteSeg-B at 512x512 using PyTorch CPU.
+
+GOOSE PP-LiteSeg was the most promising candidate qualitatively, producing
+coherent segmentation of major terrain regions on real rover imagery.
+
+However, the study also demonstrated that semantic segmentation and
+VLM-based perception are not functionally equivalent. The current VLM
+provides richer interpretation including traversability reasoning, relevant
+obstacle identification, approximate spatial relationships, and navigation
+context. Reconstructing comparable information from conventional perception
+would require additional components such as depth estimation, geometry,
+obstacle extraction, traversability rules, and sensor fusion.
+
+### Decision
+
+Local perception optimization is paused.
+
+CognitiveOps currently prioritizes cognitive architecture research and
+perceptual richness over strict real-time performance. Remote LLM/VLM
+latency is accepted as a known temporary limitation, not as a desired
+architectural property.
+
+The validated `v0.2-structured-perception` architecture therefore remains
+the stable baseline, while active development continues on
+`feature/l3-l4-gnc`.
+
+The `experiment/local-perception` branch is retained in the repository as an
+independent experimental reference and is not merged into the active
+development branch.
+
+Future work may revisit local VLMs, local LLMs, ONNX/OpenVINO optimization,
+quantization, dedicated inference hardware, or hybrid perception
+architectures.
