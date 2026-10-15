@@ -2,222 +2,222 @@
 ## Autonomous Terrain Reconnaissance
 *Goal-Directed Traversability Assessment in an Unknown Rural Environment*
 
-| Campo | Valor |
+| Field | Value |
 |---|---|
-| Documento | Proyecto de demostración experimental |
-| Versión | 0.1 — 15 de octubre de 2026 |
-| Estado | **Propuesta: RECON-1KM aún no validada en campo** |
-| Plazo | Tres semanas |
-| Plataforma | Axial SCX10 II 4×4; Raspberry Pi; cámara frontal; GPS |
-| Repositorio | https://github.com/jbruks/CognitiveOps |
-| Línea base | `fieldtest-2026-10-15-goto-point-success` |
+| Document | Experimental Mission Proposal |
+| Version | 0.1 — October 15, 2026 |
+| Status | **Proposal — RECON-1KM has not yet been field-validated** |
+| Timeline | Three weeks |
+| Platform | Axial SCX10 II 4×4; Raspberry Pi; front camera; GPS |
+| Repository | https://github.com/jbruks/CognitiveOps |
+| Baseline | `fieldtest-2026-10-15-goto-point-success` |
 
-> **Objetivo:** evaluar si CognitiveOps puede desplazarse hacia un destino GPS situado aproximadamente a 1 km, **sin ruta ni waypoints intermedios precargados**, utilizando percepción visual para seleccionar maniobras locales y registrando evidencias de navegación y del terreno observado, en un entorno rural sencillo, autorizado y supervisado.
+> **Objective:** Evaluate whether CognitiveOps can navigate toward a GPS destination approximately 1 km away, **without a preloaded route or intermediate waypoints**, using visual perception to select local maneuvers and recording evidence of navigation and observed terrain in a simple, authorized, supervised rural environment.
 
-## 1. Resumen ejecutivo
+## 1. Executive Summary
 
-CognitiveOps es una plataforma experimental de autonomía cognitiva terrestre con niveles diferenciados de gestión de misión, guiado, decisión táctica y control físico. El 15 de octubre de 2026 completó una misión `GO_TO_POINT` según su criterio de llegada GPS [E1]. RECON-1KM busca ampliar esa capacidad a un desplazamiento prolongado con una finalidad adicional: observar y documentar las condiciones del terreno recorrido.
+CognitiveOps is an experimental ground-vehicle cognitive autonomy platform with separate layers for mission management, guidance, tactical decision-making, and physical control. On October 15, 2026, it completed a `GO_TO_POINT` mission according to its GPS arrival criterion [E1]. RECON-1KM aims to extend this capability to sustained travel with an additional purpose: observing and documenting terrain conditions along the actual path taken.
 
-La misión se inspira en el **reconocimiento terrestre de rutas** descrito en publicaciones doctrinales [D1–D3] y en la investigación sobre **evaluación de transitabilidad** de vehículos autónomos [S1–S3]. Se trata de una **adaptación robótica civil, no armada y experimental**, no de una operación militar ni de una clasificación técnica certificada de carreteras.
+The mission draws on **ground route reconnaissance** described in doctrinal publications [D1–D3] and research on **terrain traversability assessment** for autonomous vehicles [S1–S3]. It is a **civilian, unarmed, experimental robotic adaptation**, not a military operation or a certified technical road classification.
 
-La prioridad es **reutilizar el software funcional**, medir sus límites e implementar únicamente cambios pequeños justificados por pruebas. **El kilómetro es una meta experimental, no una capacidad demostrada.**
+The priority is to **reuse working software**, measure its limitations, and implement only small changes justified by testing. **One kilometer is an experimental target, not a demonstrated capability.**
 
-## 2. CognitiveOps: situación actual
+## 2. CognitiveOps: Current Status
 
-### 2.1. Plataforma y arquitectura
+### 2.1. Platform and Architecture
 
-El rover utiliza un Axial SCX10 II 4×4, Raspberry Pi, cámara frontal de posición baja y GPS. La percepción observa el terreno visible delante del vehículo; el GPS estima la posición y la separación respecto al destino. Ambos presentan incertidumbre.
+The rover uses an Axial SCX10 II 4×4, Raspberry Pi, low-mounted front-facing camera, and GPS. Perception examines the terrain visible ahead of the vehicle; GPS estimates position and distance to the destination. Both sources carry uncertainty.
 
-| Componente | Función |
+| Component | Responsibility |
 |---|---|
-| **L4 — Mission Management** | Objetivo y estado de misión |
-| **L3 — Guidance & Navigation** | Guiado hacia el destino GPS |
-| **L2 — Tactical Planning** | Selección de maniobras locales |
-| **L1 — Actuator Control** | Ejecución de acciones físicas |
-| **Perception / World Model** | Interpretación visual y contexto disponible |
+| **L4 — Mission Management** | Mission objective and state |
+| **L3 — Guidance & Navigation** | Guidance toward the GPS destination |
+| **L2 — Tactical Planning** | Local maneuver selection |
+| **L1 — Actuator Control** | Physical action execution |
+| **Perception / World Model** | Visual interpretation and available context |
 
-### 2.2. Línea base demostrada
+### 2.2. Demonstrated Baseline
 
-Prueba `GO_TO_POINT` del **15/10/2026** [E1]:
+`GO_TO_POINT` field test on **October 15, 2026** [E1]:
 
-| Indicador | Resultado |
+| Metric | Result |
 |---|---:|
-| Distancia GPS inicial | 45,24 m |
-| Distancia GPS final | 4,86 m |
-| Precisión GPS final indicada | ~2,39 m |
-| Ciclos | 185 |
-| Duración | ~30 min 6 s |
-| Movimientos hacia delante | 134 |
-| Retrocesos | 26 |
-| Finalización | Por tolerancia GPS |
+| Initial GPS distance to target | 45.24 m |
+| Final GPS distance to target | 4.86 m |
+| Reported final GPS accuracy | ~2.39 m |
+| Execution cycles | 185 |
+| Duration | ~30 min 6 s |
+| Forward movements | 134 |
+| Reverse movements | 26 |
+| Completion | GPS tolerance criterion |
 
-**Interpretación:** la prueba valida la integración funcional y la llegada conforme al criterio GPS. **No demuestra** seguimiento de una ruta exacta, descubrimiento robusto de caminos ni navegación sostenida durante 1 km. El progreso lento, las interrupciones de guiado y los retrocesos sin percepción trasera son limitaciones relevantes.
+**Interpretation:** The test validates functional integration and arrival under the GPS-based criterion. It **does not demonstrate** exact route following, robust path discovery, or sustained navigation over 1 km. Slow progress, guidance interruptions, and reversing without rearward perception remain important limitations.
 
-La versión probada está preservada mediante la etiqueta Git `fieldtest-2026-10-15-goto-point-success` [E2]. Los cambios para RECON-1KM deben ser trazables y no alterar este hito.
+The tested version is preserved under Git tag `fieldtest-2026-10-15-goto-point-success` [E2]. RECON-1KM changes must remain traceable and must not alter that milestone.
 
-## 3. Justificación operativa y doctrinal
+## 3. Operational and Doctrinal Rationale
 
-El reconocimiento de un itinerario busca obtener información sobre las condiciones que afectan al movimiento: superficie, obstáculos, restricciones y continuidad del paso. **Su producto no es solo la llegada al destino, sino la información verificable obtenida durante el recorrido.**
+Reconnaissance of a route seeks information about conditions affecting movement: surface characteristics, obstacles, restrictions, and continuity of passage. **Its output is not merely reaching a destination, but obtaining verifiable information along the traveled path.**
 
-- **ATP 3-20.98 — *Reconnaissance Platoon*** [D1]: referencia conceptual sobre misiones de reconocimiento terrestre, incluido el reconocimiento de rutas.
-- **ATP 3-34.81 / MCRP 3-34.3 — *Engineer Reconnaissance*, con Change 1** [D2]: referencia sobre observación de características físicas, obstáculos y restricciones de movilidad.
-- **FM 3-25.26 — *Map Reading and Land Navigation*** [D3]: referencia general sobre posición, orientación y navegación terrestre; CognitiveOps aplica una adaptación computacional basada en GPS.
+- **ATP 3-20.98 — *Reconnaissance Platoon*** [D1]: conceptual reference for ground reconnaissance missions, including route reconnaissance.
+- **ATP 3-34.81 / MCRP 3-34.3 — *Engineer Reconnaissance*, with Change 1** [D2]: reference for observing physical characteristics, obstacles, and mobility restrictions.
+- **FM 3-25.26 — *Map Reading and Land Navigation*** [D3]: general reference for position, orientation, and land navigation; CognitiveOps uses a GPS-based computational adaptation.
 
-**Delimitación:** una ruta prescrita para reconocer y el **descubrimiento de una trayectoria entre dos coordenadas** no son equivalentes. RECON-1KM combina la finalidad del reconocimiento de rutas con un desafío tecnológico añadido: **no facilitar al rover la trayectoria**. Los manuales fundamentan la finalidad operativa, pero no especifican nuestro algoritmo ni garantizan su resultado.
+**Scope distinction:** Reconnaissance of a prescribed route and **discovering a traversable path between two coordinates** are not equivalent. RECON-1KM combines the purpose of route reconnaissance with an additional technical challenge: **the rover is not given a route**. The manuals support the operational purpose; they do not specify our algorithm or guarantee success.
 
-La transitabilidad observada se referirá a **este rover y a las condiciones concretas del ensayo**, no a la aptitud general del terreno para otros vehículos. La distancia de 1 km es una decisión experimental, no un requisito doctrinal.
+Observed traversability will refer to **this rover under the particular test conditions**, not to general suitability for other vehicles. The 1 km distance is an experimental choice, not a doctrinal requirement.
 
-## 4. Fundamento científico y tecnológico
+## 4. Scientific and Technical Background
 
-La evaluación de transitabilidad (*terrain traversability assessment*) y la navegación en entornos no estructurados son problemas conocidos de robótica terrestre [S1–S3]. El vehículo debe interpretar información del entorno, elegir movimientos y actualizar sus decisiones.
+**Terrain traversability assessment** and navigation in unstructured environments are established problems in field robotics [S1–S3]. A vehicle must interpret environmental information, choose movements, and continually revise its decisions.
 
-La cámara frontal de CognitiveOps no permite medir con fiabilidad todas las distancias, pendientes, profundidades o propiedades mecánicas del suelo. El GPS tampoco garantiza una posición exacta. Por ello se distinguirá entre **terreno aparentemente transitable**, **terreno efectivamente atravesado** y **condición desconocida**.
+CognitiveOps' front camera cannot reliably measure every distance, slope, depth, or soil mechanical property. GPS likewise does not provide an exact position. Accordingly, the report will distinguish **apparently traversable terrain**, **terrain actually crossed**, and **unknown conditions**.
 
-La demostración se centra en navegación **reactiva y orientada a un objetivo**, no en SLAM ni planificación global de rutas.
+The demonstration focuses on **reactive, goal-directed navigation**, not SLAM or global route planning.
 
-## 5. Definición de la misión RECON-1KM
+## 5. RECON-1KM Mission Definition
 
-### 5.1. Escenario y entradas
+### 5.1. Test Environment and Inputs
 
-Terreno rural **autorizado, controlado y relativamente abierto**, con pendiente suave, obstáculos moderados, buena recepción GPS y ausencia de tráfico. El equipo humano conocerá los límites y riesgos para supervisar la seguridad, pero **el rover no recibirá una ruta ni waypoints intermedios**.
+The test area will be **authorized, controlled, and relatively open rural terrain**, with gentle slopes, moderate obstacles, good GPS reception, and no traffic. The human test team will know the boundaries and hazards for safety oversight, but **the rover will receive neither a route nor intermediate waypoints**.
 
-**Entradas:** posición inicial A, coordenadas de destino B (aproximadamente a 1 km) y parámetros operativos de seguridad.
+**Inputs:** initial position A, destination coordinates B (approximately 1 km away), and operational safety parameters.
 
-### 5.2. Orden de misión
+### 5.2. Mission Order
 
-> Desde A, intenta alcanzar B utilizando el guiado GPS y la percepción visual disponibles. No se proporciona trayectoria precargada. Selecciona maniobras localmente transitables; registra condiciones observadas, obstáculos relevantes y decisiones ejecutadas. Finaliza al cumplir el criterio de llegada o detente si no puedes continuar de forma segura, conservando la evidencia de la ejecución.
+> From A, attempt to reach B using available GPS guidance and visual perception. No preloaded path is provided. Select locally traversable maneuvers; record observed terrain conditions, relevant obstacles, and executed decisions. Finish upon meeting the arrival criterion, or stop if safe continuation is not possible, preserving execution evidence.
 
-### 5.3. Objetivos verificables
+### 5.3. Verifiable Objectives
 
-| ID | Objetivo |
+| ID | Objective |
 |---|---|
-| OBJ-01 | Orientar el desplazamiento hacia B mediante GPS |
-| OBJ-02 | Seleccionar maniobras mediante guiado y percepción frontal |
-| OBJ-03 | Mantener progreso autónomo durante distancias crecientes |
-| OBJ-04 | Registrar posiciones, observaciones, acciones e incidencias |
-| OBJ-05 | Alcanzar el umbral GPS definido **o** terminar de forma segura |
-| OBJ-06 | Elaborar un informe trazable a los logs |
+| OBJ-01 | Guide movement toward B using GPS |
+| OBJ-02 | Select maneuvers using guidance and front-facing perception |
+| OBJ-03 | Sustain autonomous progress over increasing distances |
+| OBJ-04 | Record positions, observations, actions, and incidents |
+| OBJ-05 | Reach the defined GPS arrival threshold **or** terminate safely |
+| OBJ-06 | Produce a report traceable to execution logs |
 
-**Exclusiones:** llegada garantizada, exploración de redes complejas de caminos, planificación global óptima, SLAM, clasificación técnica certificada de rutas, vigilancia de personas, operaciones armadas y ejecución sin supervisión humana.
+**Out of scope:** guaranteed arrival, exploration of complex road networks, optimal global planning, SLAM, certified technical road classification, surveillance of people, armed operations, and unsupervised execution.
 
-## 6. Concepto de ejecución
+## 6. Mission Execution Concept
 
 ```text
-       DESTINO B (GPS)
-              │
-       L4: misión/estado
-              │
-       L3: guiado GPS ────────┐
-                             ▼
-       Percepción frontal → L2: decisión local
-                             │
-                       L1: actuadores
-                             │
-                       Movimiento rover
-                             │
-                   Nueva observación → repetir
+        DESTINATION B (GPS)
+                 |
+          L4: mission/state
+                 |
+          L3: GPS guidance -------+
+                                 |
+       Front perception ------> L2: local decision
+                                 |
+                            L1: actuators
+                                 |
+                            Rover motion
+                                 |
+                       New observation -> repeat
 
-          Registro de estado, percepción y acciones
+            Logging: state, perception, actions
 ```
 
-1. **Inicio:** configurar destino, límites de seguridad y logging.
-2. **Guiado:** calcular dirección y distancia estimadas a B.
-3. **Observación:** interpretar el terreno frontal visible.
-4. **Decisión:** seleccionar y ejecutar una maniobra mediante L2 y L1.
-5. **Reevaluación:** actualizar posición y percepción y repetir.
-6. **Cierre:** registrar llegada, interrupción o resultado parcial.
+1. **Initialization:** Configure the destination, safety limits, and logging.
+2. **Guidance:** Estimate bearing and distance to B.
+3. **Observation:** Interpret visible terrain ahead.
+4. **Decision:** Select and execute a maneuver through L2 and L1.
+5. **Reassessment:** Update position and perception; repeat.
+6. **Closure:** Record arrival, interruption, or partial outcome.
 
-**Precisión funcional:** no se afirmará que el rover recuerda caminos fallidos o elige entre rutas lejanas: esas capacidades no están demostradas. Se verificará qué observaciones pueden recuperarse de los logs actuales antes de prometer un inventario estructurado del terreno.
+**Functional precision:** We will not claim that the rover remembers failed paths or chooses among distant alternative routes; those capabilities have not been demonstrated. We will verify which observations can actually be recovered from current logs before promising a structured terrain inventory.
 
-## 7. Capacidades existentes y desarrollo necesario
+## 7. Existing Capabilities and Required Development
 
-**Regla:** preservar la línea base; inspeccionar el código real antes de modificarlo; justificar cada cambio con evidencia; hacer pruebas sin motores conectados antes de salir al campo.
+**Rule:** Preserve the baseline; inspect actual code before modifying it; justify each change with evidence; perform tests with motors disconnected before field deployment.
 
-| Necesidad | Tratamiento |
+| Need | Approach |
 |---|---|
-| `GO_TO_POINT`, GPS, L1–L4 y percepción | **Reutilizar** |
-| Logs de posición, percepción y acciones | **Verificar** cobertura y formato actuales |
-| Detección de estancamiento | **Mejora candidata** si las pruebas la justifican |
-| Retroceso sin visión trasera | **Revisión prioritaria de seguridad** |
-| Límites de tiempo, batería, comunicación y parada | **Verificar** e implementar solo lo imprescindible |
-| Informe de terreno y trayectoria | Preferir **posprocesado externo** de logs |
-| Cognitive Runtime, memoria avanzada, RAG, SLAM | **Aplazados** |
+| `GO_TO_POINT`, GPS, L1–L4, and perception | **Reuse** |
+| Position, perception, and action logs | **Verify** current coverage and format |
+| Stagnation / lack-of-progress detection | **Candidate improvement** if tests justify it |
+| Reversing without rearward sensing | **Priority safety review** |
+| Time, battery, communications, and stop limits | **Verify** and implement only what is essential |
+| Terrain and trajectory reporting | Prefer **offline log post-processing** |
+| Cognitive Runtime, advanced memory, RAG, SLAM | **Deferred** |
 
-No se presupone una lista cerrada de nuevas funcionalidades: las pruebas determinarán si son necesarias.
+No fixed set of new features is assumed in advance: tests will determine what is needed.
 
-## 8. Plan experimental y evaluación
+## 8. Experimental Plan and Evaluation
 
-### 8.1. Hipótesis
+### 8.1. Hypothesis
 
-> En un entorno rural sencillo y supervisado, CognitiveOps puede mantener progreso autónomo hacia un destino GPS durante distancias superiores a la demostrada, utilizando percepción frontal para seleccionar movimientos y conservando evidencia verificable.
+> In a simple, supervised rural environment, CognitiveOps can sustain autonomous progress toward a GPS destination over distances greater than previously demonstrated, using front-facing perception to select movements while retaining verifiable evidence.
 
-### 8.2. Validación progresiva
+### 8.2. Progressive Validation
 
-| Etapa | Distancia objetivo | Propósito |
+| Stage | Target distance | Purpose |
 |---|---:|---|
-| P1 | 50 m | Reproducir comportamiento de referencia |
-| P2 | 100–150 m | Medir progreso sostenido |
-| P3 | 300 m | Identificar límites de continuidad |
-| P4 | 500 m | Evaluar tiempo, energía y fiabilidad |
-| P5 | 1.000 m | Intentar demostración objetivo |
+| P1 | 50 m | Reproduce baseline behavior |
+| P2 | 100–150 m | Measure sustained progress |
+| P3 | 300 m | Identify continuity limits |
+| P4 | 500 m | Assess time, energy, and reliability |
+| P5 | 1,000 m | Attempt target demonstration |
 
-Solo se ampliará la distancia cuando el ensayo anterior sea seguro y suficientemente estable. La prueba de referencia tardó unos 30 minutos para un destino inicialmente a 45 m: **la viabilidad temporal de 1 km aún no está acreditada**.
+Distance will increase only when the preceding test is safe and sufficiently stable. The baseline test took about 30 minutes for a destination initially 45 m away: **the time feasibility of a 1 km mission is not yet established**.
 
-### 8.3. Métricas y resultados
+### 8.3. Metrics and Outcomes
 
-Se registrarán, cuando los datos lo permitan: distancia inicial y final al objetivo; precisión y trayectoria GPS; duración; progreso por unidad de tiempo; acciones, paradas y retrocesos; periodos sin guiado o percepción; observaciones visuales; intervenciones humanas; causa de finalización; y versión/configuración de software.
+Where available, record: initial and final distance to target; GPS accuracy and trajectory; duration; progress per unit time; actions, stops, and reverse movements; periods without guidance or perception; visual observations; human interventions; termination cause; and software version/configuration.
 
-- **Completada:** llegada al umbral GPS con ejecución verificable y sin incidencias de seguridad.
-- **Parcial:** progreso autónomo significativo sin llegada.
-- **Interrumpida:** parada por seguridad, fallo o intervención.
+- **Completed:** GPS arrival threshold reached, with verifiable execution and no safety incidents.
+- **Partial:** Significant autonomous progress without reaching the destination.
+- **Interrupted:** Stop caused by safety concerns, failure, or operator intervention.
 
-La llegada por tolerancia GPS **no prueba por sí sola** que se haya reconocido sistemáticamente toda la ruta.
+Arrival within GPS tolerance **does not by itself prove** that the entire route was systematically surveyed.
 
-### 8.4. Seguridad
+### 8.4. Safety
 
-Ensayos con autorización, supervisión humana, parada de emergencia, comunicación fiable y límites operativos. Evitar tráfico, personas, agua, zanjas y desniveles. No explorar fuera del área permitida. Ante percepción o guiado insuficientes, priorizar una parada segura. Revisar especialmente los retrocesos sin percepción trasera.
+Testing requires authorization, human supervision, emergency-stop capability, reliable communications, and operational boundaries. Avoid traffic, people, water, ditches, and drop-offs. Do not explore outside the permitted area. When perception or guidance is insufficient, prioritize a safe stop. Review reversing without rearward perception in particular.
 
-## 9. Plan de trabajo y entregables
+## 9. Schedule and Deliverables
 
-| Periodo | Trabajo | Entrega |
+| Period | Work | Deliverable |
 |---|---|---|
-| Semana 1 | Analizar log del 15/10, seguridad y pruebas cortas | Línea base y riesgos priorizados |
-| Semana 2 | Ensayos crecientes y correcciones mínimas justificadas | Evidencias de autonomía sostenida |
-| Semana 3 | Mejor ensayo viable y preparación de reunión | Vídeo, trayectoria, métricas e informe |
+| Week 1 | Analyze October 15 log, safety, and short tests | Quantified baseline and prioritized risks |
+| Week 2 | Increasing-distance tests and justified minimal fixes | Evidence of sustained autonomy |
+| Week 3 | Best feasible trial and meeting preparation | Video, trajectory, metrics, and report |
 
-**Entregables:** commit/tag utilizado, orden de misión, configuración, logs originales, trayectoria GPS, muestras de percepción, métricas, informe y vídeo. Si no se alcanza 1 km, se informará de la distancia validada y de sus limitaciones.
+**Deliverables:** software commit/tag, mission order, configuration, raw logs, GPS trajectory, perception samples, metrics, report, and video. If 1 km is not reached, report the validated distance and limitations.
 
-## 10. Evolución futura
+## 10. Future Evolution
 
-RECON-1KM servirá como línea base para un futuro **Cognitive Runtime**: memoria de trabajo, episódica, espacial y procedimental; gestión dinámica de tareas; registro de capacidades; y consulta de documentación técnica para planificación de misiones. La evolución deberá mantener barreras deterministas de seguridad en los niveles inferiores.
+RECON-1KM will provide a baseline for a future **Cognitive Runtime**: working, episodic, spatial, and procedural memory; dynamic task management; capability registry; and technical-document retrieval to support mission planning. Lower-level deterministic safety boundaries must remain in place.
 
-**Esta visión no forma parte del desarrollo comprometido para RECON-1KM.**
+**This vision is outside the development commitment for RECON-1KM.**
 
-## 11. Referencias y trazabilidad
+## 11. References and Traceability
 
-### Publicaciones doctrinales
+### Doctrinal Publications
 
 - **[D1]** Department of the Army. *ATP 3-20.98 — Reconnaissance Platoon* (2013). `docs/references/ATP 3-20.98 Reconnaissance Platoon 2013.pdf`.
-- **[D2]** *ATP 3-34.81 / MCRP 3-34.3 — Engineer Reconnaissance*, con Change 1. `docs/references/MCRP 3-34.3 (W CH 1) (SECURED).pdf`. **Pendiente de verificar portada, edición y designaciones exactas.**
-- **[D3]** Department of the Army. *FM 3-25.26 — Map Reading and Land Navigation*. `docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf`; edición pendiente de comprobación.
+- **[D2]** *ATP 3-34.81 / MCRP 3-34.3 — Engineer Reconnaissance*, with Change 1. `docs/references/MCRP 3-34.3 (W CH 1) (SECURED).pdf`. **Cover, edition, and exact designations require verification.**
+- **[D3]** Department of the Army. *FM 3-25.26 — Map Reading and Land Navigation*. `docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf`; edition to be confirmed.
 
-### Literatura científica
+### Scientific Literature
 
 - **[S1]** Borges et al. (2022). *A Survey on Terrain Traversability Analysis for Autonomous Ground Vehicles*. *Field Robotics*. https://doi.org/10.55417/fr.2022049
-- **[S2]** Beycimen, Ignatyev y Zolotas (2023). *A Comprehensive Survey of Unmanned Ground Vehicle Terrain Traversability for Unstructured Environments and Sensor Technology Insights*. *Engineering Science and Technology, an International Journal*. https://doi.org/10.1016/j.jestch.2023.101457
+- **[S2]** Beycimen, Ignatyev, and Zolotas (2023). *A Comprehensive Survey of Unmanned Ground Vehicle Terrain Traversability for Unstructured Environments and Sensor Technology Insights*. *Engineering Science and Technology, an International Journal*. https://doi.org/10.1016/j.jestch.2023.101457
 - **[S3]** *Terrain Traversability Analysis Methods for Unmanned Ground Vehicles: A Survey* (2013). *Engineering Applications of Artificial Intelligence*. https://doi.org/10.1016/j.engappai.2013.01.006
 
-### Evidencia del proyecto
+### Project Evidence
 
-- **[E1]** Prueba `GO_TO_POINT`, 15/10/2026. `goto_test_nav_cam_sol11_500tokens.log`. Informe: `docs/field_tests/2026-10-15_goto_point_success/REPORT.md`.
-- **[E2]** Repositorio CognitiveOps: https://github.com/jbruks/CognitiveOps; etiqueta `fieldtest-2026-10-15-goto-point-success`.
+- **[E1]** `GO_TO_POINT` field test, October 15, 2026. `goto_test_nav_cam_sol11_500tokens.log`. Report: `docs/field_tests/2026-10-15_goto_point_success/REPORT.md`.
+- **[E2]** CognitiveOps repository: https://github.com/jbruks/CognitiveOps; tag `fieldtest-2026-10-15-goto-point-success`.
 
-> **Control bibliográfico:** las referencias doctrinales se utilizan aquí como fundamento conceptual, no como transcripción exhaustiva. **Antes de distribuir una versión académica o formal, cotejar directamente los PDF para verificar edición, páginas y apartados, y revisar los metadatos de los artículos científicos.**
+> **Bibliographic control:** Doctrinal publications are used here as conceptual foundations, not as exhaustive quotations. **Before academic or formal distribution, cross-check the actual PDFs for editions, pages, and sections, and verify scientific article metadata.**
 
 ---
 
-## Conclusión
+## Conclusion
 
-RECON-1KM propone una demostración de reconocimiento de terreno orientada a un destino, fundamentada en una necesidad operativa real y en problemas de robótica de campo. Su aportación será medir **hasta dónde llega CognitiveOps con la arquitectura ya validada**, sin ruta precargada, conservando evidencias de observación, decisión y movimiento.
+RECON-1KM proposes a goal-directed terrain reconnaissance demonstration grounded in a real operational need and established field-robotics problems. Its contribution will be to measure **how far CognitiveOps can go using its already validated architecture**, without a preloaded route, while preserving evidence of observation, decision-making, and movement.
 
-La meta de 1 km es ambiciosa respecto a la línea base. El proyecto prioriza **seguridad, medición honesta y cambios mínimos**: demostrar primero, ampliar después.
+The 1 km target is ambitious relative to the baseline. The project prioritizes **safety, honest measurement, and minimal changes**: demonstrate first, then expand.
