@@ -59,15 +59,15 @@ class L2TacticalPlanner:
 
 
         # DEBUG: ver exactamente qué recibe L2
-        XLogger.log("L2", f"Tactical prompt:\n{prompt}")
+        #XLogger.log("L2", f"Tactical prompt:\n{prompt}")
 
         raw_response = self.llm.decide(prompt)
 
-        XLogger.log("L2", f"LLM raw response: {raw_response}")
+        #XLogger.log("L2", f"LLM raw response: {raw_response}")
 
         parsed_action = parse_llm_response(raw_response)
 
-        XLogger.log("L2", f"LLM parsed action: {parsed_action.value}")
+        #XLogger.log("L2", f"LLM parsed action: {parsed_action.value}")
 
         validated_action = validate_action(
             parsed_action,
@@ -120,7 +120,11 @@ class L2TacticalPlanner:
         #with open(filepath, "wb") as f:
         #    f.write(image_bytes)
         #XLogger.log("L2", f"step [SIM {sim_id:04d}] Image saved → {filepath}")
-        semantic_summary = result.world_model.semantic_summary()
+        semantic_summary = (
+            result.world_model.semantic_summary()
+            if result.world_model is not None
+            else "World model unavailable"
+        )
         #XLogger.log("L2", "step: " + s)
 
         action, decision_info, prompt, source = self.decide_action(
@@ -208,6 +212,14 @@ class L2TacticalPlanner:
         If a maneuver is vetoed, return HOLD so L2 can reason
         again on the next cycle.
         """
+
+	# SAFETY: stop whenever perception is unavailable.
+        if perception_state is None or perception_state.confidence <= 0.0:
+            XLogger.log(
+                "L2",
+                "[SAFETY] Perception unavailable -> STOP"
+            )
+            return TacticalAction.STOP
 
         # Only moving/steering actions need this first safety check.
         if action not in (

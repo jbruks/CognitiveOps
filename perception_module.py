@@ -321,138 +321,92 @@ class PerceptionModule:
             )
 
         # 🧠 LLM percepción
-        
-
 
         perception_prompt = """
-You are the visual perception layer of an autonomous ground rover.
+You are the visual perception system of an Axial SCX10 II
+4x4 rock crawler, approximately 0.30 m wide, with standard
+axles and approximately 0.07 m minimum ground clearance.
 
-Analyze the camera image and describe the immediate environment for local navigation.
+This rover is designed to traverse gravel, loose dirt,
+small stones, grass, and moderately uneven terrain.
 
-The rover is a small 4x4 off-road crawler approximately 0.30 m wide.
-It can traverse grass, dirt, gravel, small rocks, pavement, and slightly uneven terrain.
+Camera perspective can make small stones near the camera
+appear much larger than they really are.
 
-Evaluate these five rover-relative regions:
+Analyze the image only for immediate local navigation.
 
-- left
-- front-left
-- front
-- front-right
-- right
+Evaluate exactly these five rover-relative regions:
+left, front-left, front, front-right, right.
 
 For each region determine:
-- traversable: whether the rover can safely drive through it
-- risk_level: "low", "medium", or "high"
+- traversable: true or false
+- risk: low, medium, or high
 
-Report only relevant visible obstacles.
+Report only obstacles that meaningfully restrict or endanger
+the movement of this specific rover.
 
-For each obstacle provide:
-- type
-- position.region
-- approximate distance_m
-- traversable
+Gravel, scattered small stones, loose dirt, sparse grass,
+and minor surface irregularities are traversable terrain.
+Do not report them as individual obstacles.
 
-Perception rules:
-- Infer only what is visually observable.
-- Do not invent unseen obstacles.
-- Distances from a monocular camera are approximate.
-- Grass and moderately rough continuous terrain are normally traversable.
-- Dense vegetation, walls, large obstacles, steep drops, water, and clearly blocked areas are not traversable.
-- Pay particular attention to obstacles within 0.5 m of the rover.
-- If uncertain, be conservative and reduce overall_confidence.
-- Do not infer mission intent or choose a rover action.
-- Describe the environment only.
+A stone is not a blocking obstacle merely because it appears
+large in the foreground of the image.
 
-Return ONLY valid JSON.
-No markdown, comments, explanations, or additional text.
+Report rocks, rigid objects, dense vegetation, holes, drops,
+water, and other hazards when they could prevent safe passage.
 
-Return exactly this structure:
+Do not assume that an uncertain obstacle is safely passable.
+
+Do NOT report sparse grass, isolated grass stems, flexible weeds,
+or light vegetation as obstacles when the rover can reasonably
+push through or pass over them.
+
+Treat such vegetation as part of the traversable terrain,
+even if it is tall enough to appear prominently in the image.
+
+Report dense or rigid vegetation as an obstacle when it forms
+a physical barrier.
+
+Also report solid obstacles, large rocks, trunks, walls, holes,
+drops, water, and other hazards that could prevent safe passage.
+
+An obstacle must represent a real restriction on rover movement,
+not merely something visible in the camera image.
+
+For each obstacle estimate:
+- region
+- distance_m
+
+The rover can traverse grass, dirt, gravel, small rocks, pavement,
+and moderately uneven continuous terrain.
+
+Dense vegetation, walls, large obstacles, drops, water, and blocked
+areas are not traversable.
+
+Do not identify or describe objects.
+Do not infer anything not visible.
+Do not choose a rover action.
+
+Return ONLY valid JSON:
 
 {
   "regions": [
-    {
-      "name": "left",
-      "traversable": true,
-      "risk_level": "low"
-    },
-    {
-      "name": "front-left",
-      "traversable": true,
-      "risk_level": "low"
-    },
-    {
-      "name": "front",
-      "traversable": true,
-      "risk_level": "low"
-    },
-    {
-      "name": "front-right",
-      "traversable": true,
-      "risk_level": "low"
-    },
-    {
-      "name": "right",
-      "traversable": true,
-      "risk_level": "low"
-    }
+    {"name":"left","traversable":true,"risk":"low"},
+    {"name":"front-left","traversable":true,"risk":"low"},
+    {"name":"front","traversable":true,"risk":"low"},
+    {"name":"front-right","traversable":true,"risk":"low"},
+    {"name":"right","traversable":true,"risk":"low"}
   ],
-  "objects": [
-    {
-      "type": "obstacle",
-      "position": {
-        "region": "front"
-      },
-      "distance_m": 1.0,
-      "traversable": false
-    }
-  ],
-  "summary": "Concise description of immediate traversability and relevant obstacles.",
-  "overall_confidence": 0.8
+  "obstacles": [],
+  "confidence":0.8
 }
 
 All five regions must always be present.
-The objects array must always be present and may be empty.
-overall_confidence must be between 0.0 and 1.0.
+obstacles may be empty.
+confidence must be between 0.0 and 1.0.
 """
-        
-        
-        
-        perception_prompt_2 = """
-    You are the perception layer of an autonomous rover.
 
-    Analyze the image and return ONLY valid JSON:
 
-    {
-  "navigation": {
-    "free_direction": "left",
-    "corridor_visible": true,
-    "risk_level": "moderate"
-  },
-
-  "objects": [
-    {
-      "type": "obstacle",
-      "position": "front-left",
-      "distance_m": 1.5
-    }
-  ],
-
-  "regions": [
-    {
-      "name": "ahead",
-      "terrain": "rough"
-    }
-  ],
-
-  "summary": "short navigation summary",
-
-  "confidence": 0.8
-}
-
-    Rules:
-    - Be conservative
-    - Focus on obstacles and traversability
-    """
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
         
         XLogger.log("Perception", "Image preprocessing END")
@@ -486,7 +440,22 @@ overall_confidence must be between 0.0 and 1.0.
             
             ##########################################
             objects = data.get("objects", [])
+            obstacles = data.get("obstacles", [])
             regions = data.get("regions", [])
+            confidence = float(data.get("confidence", 0.0))
+            
+            # Convert compact VLM obstacles to the existing internal object format
+            objects = [
+                {
+                    "type": "obstacle",
+                    "position": {
+                        "region": obstacle.get("region", "unknown")
+                    },
+                    "distance_m": obstacle.get("distance_m"),
+                    "traversable": False,
+                }
+                for obstacle in obstacles
+            ]
 
             regions_by_name = {
                 region.get("name"): region
@@ -499,15 +468,58 @@ overall_confidence must be between 0.0 and 1.0.
             left = regions_by_name.get("left", {})
             right = regions_by_name.get("right", {})
 
-            front_traversable = bool(front.get("traversable", False))
-            left_traversable = bool(
+            # Visual traversability reported by the VLM
+            front_visual = bool(front.get("traversable", False))
+
+            left_visual = bool(
                 front_left.get("traversable", False)
                 or left.get("traversable", False)
             )
-            right_traversable = bool(
+
+            right_visual = bool(
                 front_right.get("traversable", False)
                 or right.get("traversable", False)
             )
+
+
+            # Nearby obstacles block the corresponding movement corridor
+            MIN_CLEARANCE_M = 1
+
+            blocked_regions = set()
+
+            for obstacle in obstacles:
+                distance = obstacle.get("distance_m")
+                region = obstacle.get("region")
+
+                if (
+                    distance is not None
+                    and region is not None
+                    and distance <= MIN_CLEARANCE_M
+                ):
+                    blocked_regions.add(region)
+
+
+            # Clearance for each possible movement direction
+            front_clear = not any(
+                region in blocked_regions
+                for region in ("front-left", "front", "front-right")
+            )
+
+            left_clear = not any(
+                region in blocked_regions
+                for region in ("left", "front-left")
+            )
+
+            right_clear = not any(
+                region in blocked_regions
+                for region in ("front-right", "right")
+            )
+
+
+            # Final traversability = visual perception + geometric clearance
+            front_traversable = front_visual and front_clear
+            left_traversable = left_visual and left_clear
+            right_traversable = right_visual and right_clear
 
             obstacle_ahead = not front_traversable
 
@@ -525,7 +537,8 @@ overall_confidence must be between 0.0 and 1.0.
                 free_direction=free_direction,
                 corridor_visible=front_traversable,
                 summary=str(data.get("summary", "")),
-                confidence=float(data.get("overall_confidence", 0.0)),
+                #confidence=float(data.get("overall_confidence", 0.0)),
+                confidence=confidence,
                 objects=objects,
                 regions=regions,
                 perception_prompt_result=response.output_text.strip(),
@@ -557,9 +570,11 @@ overall_confidence must be between 0.0 and 1.0.
             
             return PerceptionResult(
                 perception_state=state,
+                world_model=world,
                 image_bytes=image_bytes,
-                gps_state=gps_state)
-            
+                gps_state=gps_state
+            )
+                        
 
 
     def close(self):
