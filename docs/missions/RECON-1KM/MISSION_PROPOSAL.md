@@ -1,223 +1,328 @@
 # CognitiveOps — RECON-1KM
-## Autonomous Terrain Reconnaissance
-*Goal-Directed Traversability Assessment in an Unknown Rural Environment*
+## Doctrine-Guided Autonomous Terrain Reconnaissance
+*Map-assisted mission planning, autonomous execution, and evidence-based terrain reporting*
 
 | Field | Value |
 |---|---|
 | Document | Experimental Mission Proposal |
-| Version | 0.1 — October 15, 2026 |
-| Status | **Proposal — RECON-1KM has not yet been field-validated** |
-| Timeline | Three weeks |
-| Platform | Axial SCX10 II 4×4; Raspberry Pi; front camera; GPS |
+| Version | **0.2 — October 15, 2026** |
+| Status | **Proposed; the new mission-planning and reconnaissance workflow has not been implemented or field-validated** |
+| Preparation window | Approximately three weeks |
+| Platform | Axial SCX10 II 4×4, Raspberry Pi, front camera, GPS |
 | Repository | https://github.com/jbruks/CognitiveOps |
-| Baseline | `fieldtest-2026-10-15-goto-point-success` |
+| Proven baseline | `fieldtest-2026-10-15-goto-point-success` |
 
-> **Objective:** Evaluate whether CognitiveOps can navigate toward a GPS destination approximately 1 km away, **without a preloaded route or intermediate waypoints**, using visual perception to select local maneuvers and recording evidence of navigation and observed terrain in a simple, authorized, supervised rural environment.
+> **Mission concept:** Provide CognitiveOps with a start point **A**, a destination **B** approximately 1 km away, and a **georeferenced map**. L4 uses a small, source-traceable set of doctrine-derived planning and observation guidelines to propose a few navigation segments. The rover executes them using existing navigation and perception capabilities, collects terrain observations, and produces a report grounded in recorded evidence.
 
 ## 1. Executive Summary
 
-CognitiveOps is an experimental ground-vehicle cognitive autonomy platform with separate layers for mission management, guidance, tactical decision-making, and physical control. On October 15, 2026, it completed a `GO_TO_POINT` mission according to its GPS arrival criterion [E1]. RECON-1KM aims to extend this capability to sustained travel with an additional purpose: observing and documenting terrain conditions along the actual path taken.
+CognitiveOps is an experimental cognitive-autonomy system for a small unmanned ground vehicle. Its four-layer architecture separates mission management (L4), guidance (L3), tactical maneuver selection (L2), and actuator control (L1), with visual perception and a world model providing environmental context.
 
-The mission draws on **ground route reconnaissance** described in doctrinal publications [D1–D3] and research on **terrain traversability assessment** for autonomous vehicles [S1–S3]. It is a **civilian, unarmed, experimental robotic adaptation**, not a military operation or a certified technical road classification.
+On October 15, 2026, CognitiveOps completed a `GO_TO_POINT` field trial according to its GPS arrival criterion [E1]. **RECON-1KM** extends that baseline into a more complete, realistic mission workflow:
 
-The priority is to **reuse working software**, measure its limitations, and implement only small changes justified by testing. **One kilometer is an experimental target, not a demonstrated capability.**
+1. **PLAN:** L4 interprets the goal and map, applies concise doctrine-derived guidelines, and creates a small set of executable segments.
+2. **EXECUTE:** L4 runs those segments sequentially through the existing `GO_TO_POINT` mechanism; L3–L1 and perception handle local navigation.
+3. **OBSERVE:** The system records terrain information relevant to reconnaissance, using categories derived from the referenced publications and adapted to rover sensors.
+4. **REPORT:** An evidence-based post-mission report summarizes the route actually traveled, observations, outcomes, and uncertainty.
+
+The purpose is to demonstrate **knowledge-informed mission decomposition and physical execution** without building a general Cognitive Runtime, full-document RAG, SLAM, or dynamic global replanning. This is an **unarmed, civilian-safe, supervised field-robotics experiment**. A 1 km completion is the target, **not an established capability**.
 
 ## 2. CognitiveOps: Current Status
 
-### 2.1. Platform and Architecture
+### 2.1. Physical Platform and Architecture
 
-The rover uses an Axial SCX10 II 4×4, Raspberry Pi, low-mounted front-facing camera, and GPS. Perception examines the terrain visible ahead of the vehicle; GPS estimates position and distance to the destination. Both sources carry uncertainty.
+The rover uses an Axial SCX10 II 4×4, Raspberry Pi, low-mounted front-facing camera, and GPS. Front-facing perception evaluates visible terrain; GPS estimates position and direction toward a destination. Both are uncertain and neither guarantees route traversability.
 
-| Component | Responsibility |
+| Component | Existing role |
 |---|---|
-| **L4 — Mission Management** | Mission objective and state |
-| **L3 — Guidance & Navigation** | Guidance toward the GPS destination |
-| **L2 — Tactical Planning** | Local maneuver selection |
-| **L1 — Actuator Control** | Physical action execution |
-| **Perception / World Model** | Visual interpretation and available context |
+| **L4 — Mission Management** | Receives and supervises the mission objective |
+| **L3 — Guidance & Navigation** | Computes guidance toward the active GPS target |
+| **L2 — Tactical Planning** | Selects local movements based on guidance and perception |
+| **L1 — Actuator Control** | Executes actuator commands |
+| **Perception / World Model** | Interprets images and maintains available environmental context |
 
-### 2.2. Demonstrated Baseline
+### 2.2. Demonstrated Field Baseline — October 15, 2026
 
-`GO_TO_POINT` field test on **October 15, 2026** [E1]:
-
-| Metric | Result |
+| Metric | Observed result |
 |---|---:|
-| Initial GPS distance to target | 45.24 m |
-| Final GPS distance to target | 4.86 m |
+| Mission | `GO_TO_POINT` |
+| Initial GPS distance to destination | 45.24 m |
+| Final GPS distance to destination | 4.86 m |
 | Reported final GPS accuracy | ~2.39 m |
 | Execution cycles | 185 |
 | Duration | ~30 min 6 s |
 | Forward movements | 134 |
-| Reverse movements | 26 |
-| Completion | GPS tolerance criterion |
+| Reverse movements | **26, without rearward perception** |
+| Result | Arrival according to the configured GPS criterion |
 
-**Interpretation:** The test validates functional integration and arrival under the GPS-based criterion. It **does not demonstrate** exact route following, robust path discovery, or sustained navigation over 1 km. Slow progress, guidance interruptions, and reversing without rearward perception remain important limitations.
-
-The tested version is preserved under Git tag `fieldtest-2026-10-15-goto-point-success` [E2]. RECON-1KM changes must remain traceable and must not alter that milestone.
+This demonstrates successful integration in one field test, **not** validated map-based planning, autonomous route discovery, comprehensive terrain reporting, or 1 km endurance. Slow effective progress, GPS variability, temporary unavailable guidance, and blind reversing require attention. Preserve the baseline tag and make any changes separately and traceably [E1–E2].
 
 ## 3. Operational and Doctrinal Rationale
 
-Reconnaissance of a route seeks information about conditions affecting movement: surface characteristics, obstacles, restrictions, and continuity of passage. **Its output is not merely reaching a destination, but obtaining verifiable information along the traveled path.**
+Reconnaissance of a route or terrain corridor is a real-world information-gathering task: determine conditions affecting movement, identify visible restrictions, and communicate observations. **Reaching a destination alone is not a reconnaissance result.**
 
-- **ATP 3-20.98 — *Reconnaissance Platoon*** [D1]: conceptual reference for ground reconnaissance missions, including route reconnaissance.
-- **ATP 3-34.81 / MCRP 3-34.3 — *Engineer Reconnaissance*, with Change 1** [D2]: reference for observing physical characteristics, obstacles, and mobility restrictions.
-- **FM 3-25.26 — *Map Reading and Land Navigation*** [D3]: general reference for position, orientation, and land navigation; CognitiveOps uses a GPS-based computational adaptation.
+| Publication | Role in RECON-1KM | Scope of adaptation |
+|---|---|---|
+| **ATP 3-20.98 — *Reconnaissance Platoon*** [D1] | Mission purpose and reporting of route conditions | Reconnaissance concepts, **not** replication of a military unit |
+| **ATP 3-34.81 / MCRP 3-34.3 — *Engineer Reconnaissance*** [D2] | Mobility restrictions, visible obstacles, and terrain-condition observations | Visual, rover-relative assessment, **not** certified route classification |
+| **FM 3-25.26 — *Map Reading and Land Navigation*** [D3] | Positions, direction, route context, and navigation references | GPS/map-based adaptation, **not** implementation of all manual techniques |
 
-**Scope distinction:** Reconnaissance of a prescribed route and **discovering a traversable path between two coordinates** are not equivalent. RECON-1KM combines the purpose of route reconnaissance with an additional technical challenge: **the rover is not given a route**. The manuals support the operational purpose; they do not specify our algorithm or guarantee success.
+**Doctrinal boundary:** The manuals provide concepts for route reconnaissance, land navigation, and observation. **The three-segment mission structure, L4 orchestration, JSON schemas, and sensor-specific categories are CognitiveOps engineering choices.** They must not be presented as prescriptions from those publications. Exact passages, editions, and page references will be verified against the locally archived PDFs before formal attribution.
 
-Observed traversability will refer to **this rover under the particular test conditions**, not to general suitability for other vehicles. The 1 km distance is an experimental choice, not a doctrinal requirement.
+The map gives L4 prior geographical context; **the actual condition and traversability of the route remain to be checked in the field**. This is a map-assisted reconnaissance mission, not pure exploration from two coordinates alone.
 
-## 4. Scientific and Technical Background
+## 4. Scientific and Technical Foundation
 
-**Terrain traversability assessment** and navigation in unstructured environments are established problems in field robotics [S1–S3]. A vehicle must interpret environmental information, choose movements, and continually revise its decisions.
+Terrain traversability assessment, autonomous ground navigation, and perception in unstructured environments are established field-robotics research areas [S1–S3]. RECON-1KM combines these problems with a deliberately small knowledge-to-action workflow.
 
-CognitiveOps' front camera cannot reliably measure every distance, slope, depth, or soil mechanical property. GPS likewise does not provide an exact position. Accordingly, the report will distinguish **apparently traversable terrain**, **terrain actually crossed**, and **unknown conditions**.
+A front-facing camera cannot reliably establish soil bearing capacity, hidden obstacles, exact slopes, or conditions beyond its field of view. GPS observations have finite accuracy. Reports must therefore distinguish **observed**, **inferred**, **actually traversed**, and **unknown** conditions; no visual assessment should be represented as a certified engineering measurement.
 
-The demonstration focuses on **reactive, goal-directed navigation**, not SLAM or global route planning.
+## 5. Mission Definition
 
-## 5. RECON-1KM Mission Definition
+### 5.1. Inputs and Environment
 
-### 5.1. Test Environment and Inputs
+**Required inputs:** starting position **A**, destination **B** (approximately 1 km away), and a **georeferenced map** containing sufficient information to locate proposed intermediate objectives. Mission limits and the authorized operating area are safety inputs.
 
-The test area will be **authorized, controlled, and relatively open rural terrain**, with gentle slopes, moderate obstacles, good GPS reception, and no traffic. The human test team will know the boundaries and hazards for safety oversight, but **the rover will receive neither a route nor intermediate waypoints**.
+The experiment takes place in relatively simple, authorized, supervised rural terrain with mild slopes, manageable obstacles, good GPS reception, and no traffic. The test team may know the area for safety purposes, but **the rover receives no manually prepared waypoint sequence**.
 
-**Inputs:** initial position A, destination coordinates B (approximately 1 km away), and operational safety parameters.
+The map may be a georeferenced raster or geographic route data. **An unreferenced screenshot alone is insufficient to safely generate GPS waypoints.** Any model-proposed waypoint must be converted using valid map coordinates and checked deterministically.
 
 ### 5.2. Mission Order
 
-> From A, attempt to reach B using available GPS guidance and visual perception. No preloaded path is provided. Select locally traversable maneuvers; record observed terrain conditions, relevant obstacles, and executed decisions. Finish upon meeting the arrival criterion, or stop if safe continuation is not possible, preserving execution evidence.
+> Plan and attempt a terrain reconnaissance mission from A to B using the supplied map and approved doctrine-derived guidelines. Divide the mission into a small number of executable navigation segments (initial target: **up to three**). Execute the segments sequentially, observe terrain conditions throughout the journey, preserve supporting evidence, and produce a report. Stop safely if navigation, sensing, or operating conditions become unacceptable.
 
-### 5.3. Verifiable Objectives
+### 5.3. Mission Objectives
 
-| ID | Objective |
-|---|---|
-| OBJ-01 | Guide movement toward B using GPS |
-| OBJ-02 | Select maneuvers using guidance and front-facing perception |
-| OBJ-03 | Sustain autonomous progress over increasing distances |
-| OBJ-04 | Record positions, observations, actions, and incidents |
-| OBJ-05 | Reach the defined GPS arrival threshold **or** terminate safely |
-| OBJ-06 | Produce a report traceable to execution logs |
+| ID | Objective | Evidence |
+|---|---|---|
+| **OBJ-01** | L4 generates a segment plan from A, B, and the map | Saved plan and map provenance |
+| **OBJ-02** | Planning uses verified doctrine-derived guidance | Guideline IDs and planning trace |
+| **OBJ-03** | L4 executes segments sequentially using existing navigation | Segment state transitions and control logs |
+| **OBJ-04** | Terrain observations follow a defined reconnaissance schema | Timestamped observations and supporting images/logs |
+| **OBJ-05** | Rover makes autonomous progress or stops safely | GPS trajectory, safety and intervention log |
+| **OBJ-06** | Produce a traceable final reconnaissance report | Report linked to raw evidence |
 
-**Out of scope:** guaranteed arrival, exploration of complex road networks, optimal global planning, SLAM, certified technical road classification, surveillance of people, armed operations, and unsupervised execution.
+**Excluded:** guaranteed 1 km arrival; autonomous discovery of complex road networks; global optimal routing; automatic replanning after blocked routes; SLAM; certified engineering assessment; surveillance of persons; armed operations; unsupervised testing.
 
-## 6. Mission Execution Concept
+## 6. Doctrine-Guided Planning, Execution, and Observation
+
+### 6.1. End-to-End Workflow
 
 ```text
-        DESTINATION B (GPS)
-                 |
-          L4: mission/state
-                 |
-          L3: GPS guidance -------+
-                                 |
-       Front perception ------> L2: local decision
-                                 |
-                            L1: actuators
-                                 |
-                            Rover motion
-                                 |
-                       New observation -> repeat
-
-            Logging: state, perception, actions
+             MISSION REQUEST
+         Start A + Goal B + Map
+                    |
+                    v
+          L4 MISSION PLANNER <---- Verified doctrine-derived guidelines
+                    |             (planning + observation requirements)
+                    v
+            VALIDATED PLAN
+         S1: A -> P1
+         S2: P1 -> P2
+         S3: P2 -> B
+                    |
+                    v
+          L4 SEGMENT EXECUTOR
+                    |
+          Existing GO_TO_POINT
+                    |
+        L3 guidance -> L2 tactics -> L1 control
+                    ^                 |
+                    |                 v
+             Front perception <- Rover movement
+                    |
+                    v
+           RECON OBSERVATION LOG
+                    |
+                    v
+          OFFLINE MISSION REPORT
 ```
 
-1. **Initialization:** Configure the destination, safety limits, and logging.
-2. **Guidance:** Estimate bearing and distance to B.
-3. **Observation:** Interpret visible terrain ahead.
-4. **Decision:** Select and execute a maneuver through L2 and L1.
-5. **Reassessment:** Update position and perception; repeat.
-6. **Closure:** Record arrival, interruption, or partial outcome.
+**The planner may propose fewer than three segments.** Three is a demonstration configuration, not a universal rule. Intermediate objectives are generated by L4, not supplied by the operator. The plan must be validated **before any movement**.
 
-**Functional precision:** We will not claim that the rover remembers failed paths or chooses among distant alternative routes; those capabilities have not been demonstrated. We will verify which observations can actually be recovered from current logs before promising a structured terrain inventory.
+### 6.2. Minimal Doctrine Knowledge Profile
 
-## 7. Existing Capabilities and Required Development
+A short, version-controlled **reconnaissance knowledge profile** will be prepared from verified passages of [D1–D3]. It will contain two types of guidance:
 
-**Rule:** Preserve the baseline; inspect actual code before modifying it; justify each change with evidence; perform tests with motors disconnected before field deployment.
+**Planning guidance:** use identifiable, geographically valid intermediate objectives; relate segment goals to available map information; retain a clear final destination; consider rover limitations; define explicit completion and abort conditions.
 
-| Need | Approach |
-|---|---|
-| `GO_TO_POINT`, GPS, L1–L4, and perception | **Reuse** |
-| Position, perception, and action logs | **Verify** current coverage and format |
-| Stagnation / lack-of-progress detection | **Candidate improvement** if tests justify it |
-| Reversing without rearward sensing | **Priority safety review** |
-| Time, battery, communications, and stop limits | **Verify** and implement only what is essential |
-| Terrain and trajectory reporting | Prefer **offline log post-processing** |
-| Cognitive Runtime, advanced memory, RAG, SLAM | **Deferred** |
+**Observation guidance:** observe and report surface characteristics, visible obstacles, possible mobility restrictions, route continuity, and location uncertainty. Maintain the same core categories throughout all segments.
 
-No fixed set of new features is assumed in advance: tests will determine what is needed.
+The profile will identify **source document, edition, page/section once checked, principle, and CognitiveOps adaptation**. A source label in a prompt or JSON field **is not sufficient proof** that a model applied that source. Preserve the actual guideline text given to L4 and the resulting planning decisions.
 
-## 8. Experimental Plan and Evaluation
+**Minimal implementation:** a curated Markdown or structured profile loaded into the L4 planning context. **No PDF retrieval at runtime is required.**
+
+### 6.3. Structured Mission Plan
+
+Illustrative output (**P1/P2 are placeholders, not coordinates**):
+
+```json
+{
+  "mission_id": "RECON-1KM",
+  "planning_mode": "map_assisted_doctrine_guided",
+  "map_reference": "<verified-georeferenced-map-id>",
+  "guideline_profile": "<versioned-profile-id>",
+  "segments": [
+    {"id": "S1", "from": "A",  "to": "P1", "task": "GO_TO_POINT"},
+    {"id": "S2", "from": "P1", "to": "P2", "task": "GO_TO_POINT"},
+    {"id": "S3", "from": "P2", "to": "B",  "task": "GO_TO_POINT"}
+  ],
+  "observation_profile": "terrain_recon_v1",
+  "doctrine_guideline_ids": ["<verified-guideline-id>"]
+}
+```
+
+Before execution, deterministic checks must confirm valid coordinates, correct map projection/georeferencing, allowed-area boundaries, segment count, supported task type, and **B as the final objective**. An LLM must not invent or directly execute unchecked geographic coordinates.
+
+### 6.4. Reconnaissance Observation Requirements
+
+The following is a **proposed rover-specific schema inspired by the manuals**, not a verbatim doctrinal reporting form:
+
+| Field | Intended observation | Limits |
+|---|---|---|
+| `surface` | Visible gravel, compact soil, grass, mud-like appearance, etc. | Visual appearance only |
+| `traversability` | `PASSABLE`, `RESTRICTED`, `BLOCKED`, `UNKNOWN` | Relative to rover and available evidence |
+| `visible_obstacles` | Stones, branches, vegetation, apparent ruts/ditches | Only if visible and reasonably supported |
+| `terrain_condition` | Unevenness, apparent erosion, loose surface | No unmeasured physical properties |
+| `route_continuity` | Visible continuation, interruption, unknown | Limited to observed field of view |
+| `position` | GPS position and accuracy when available | Approximate, not exact obstacle geolocation |
+| `evidence` | Image/log reference, timestamp, segment ID | Must resolve to an actual record |
+| `confidence` | Supported confidence/uncertainty marker | Use `UNKNOWN` where evidence is insufficient |
+
+Navigation and reconnaissance should preferably share **the existing perception result**. Preserve the current L2 input contract; first inspect the VLM output and parser, then add non-breaking logging or post-processing. **Do not promise observations that the present logs cannot support.**
+
+A minimal JSONL observation record could look like this (illustrative, with no fabricated coordinates):
+
+```json
+{
+  "mission_id": "RECON-1KM",
+  "segment_id": "S2",
+  "timestamp": "<recorded-time>",
+  "gps": {"latitude": null, "longitude": null, "accuracy_m": null},
+  "surface": "gravel",
+  "traversability": "UNKNOWN",
+  "visible_obstacles": ["small_stones"],
+  "route_continuity": "VISIBLE",
+  "confidence": "MEDIUM",
+  "image_ref": "<actual-image-reference>"
+}
+```
+
+### 6.5. Segment Execution and Mission Reporting
+
+L4 activates S1, waits for its actual `GO_TO_POINT` outcome, records the segment result, and proceeds to S2 only when S1 meets the validated completion criterion. On failure, unsafe conditions, or loss of essential sensing, **stop and preserve partial results**. No automatic global replanning is included in this phase.
+
+An **offline** report generator will assemble:
+
+1. Mission inputs, map provenance, knowledge-profile version, and generated plan.
+2. Planned versus executed segments, with status and human interventions.
+3. GPS trajectory, duration, progress, and uncertainty.
+4. Terrain observations linked to timestamps, approximate positions, and evidence.
+5. Obstacles, restrictions, unknown areas, and sensor limitations.
+6. Final outcome: `COMPLETED`, `PARTIAL`, or `ABORTED`.
+
+The report must cover **the path actually observed**, not claim that the full map corridor or untraveled route was inspected.
+
+## 7. Minimal Implementation Scope
+
+**Engineering rule:** inspect the actual L4 runner and perception interfaces first; preserve the proven baseline; implement small, testable changes; dry-run with motors disconnected before field deployment.
+
+| Item | Plan | Priority |
+|---|---|---|
+| Existing L3/L2/L1, GPS, `GO_TO_POINT` | Reuse unchanged if interfaces allow | Essential |
+| Georeferenced map input | Choose one simple, verifiable format | Essential |
+| Curated doctrine knowledge profile | Verify relevant manual passages; store source links | Essential |
+| L4 plan generation | Generate at most three segments from A/B/map/profile | Essential |
+| Deterministic plan validation | Reject invalid, unsafe, or unsupported waypoints | Essential |
+| Sequential segment executor | Reuse `GO_TO_POINT`, track outcomes | Essential |
+| Reconnaissance observation capture | Reuse existing perception/logs; minimal extension only if needed | Essential |
+| Offline report generator | Assemble evidence and limitations | Essential |
+| Blind reversing and emergency stop | Review and address safety risks | Essential |
+| Stagnation/time limits | Add only if not already covered | Conditional |
+| Cognitive Runtime, full RAG, memory, SLAM, replanning | Defer | Out of scope |
+
+**Effort warning:** Segment sequencing may be small; **map interpretation, valid coordinate extraction, and VLM/log compatibility are the uncertain parts**. They must be scoped after inspecting the code and chosen map format. This document is a proposal, not a claim that these features already exist.
+
+## 8. Experimental Validation and Success Criteria
 
 ### 8.1. Hypothesis
 
-> In a simple, supervised rural environment, CognitiveOps can sustain autonomous progress toward a GPS destination over distances greater than previously demonstrated, using front-facing perception to select movements while retaining verifiable evidence.
+> CognitiveOps can use a compact, traceable doctrine-derived knowledge profile to generate and validate a short map-assisted reconnaissance plan, execute its segments with existing navigation capabilities, and produce an evidence-based terrain report in a simple, supervised rural environment.
 
-### 8.2. Progressive Validation
+### 8.2. Test Progression
 
-| Stage | Target distance | Purpose |
+| Stage | Distance | Primary validation |
 |---|---:|---|
-| P1 | 50 m | Reproduce baseline behavior |
-| P2 | 100–150 m | Measure sustained progress |
-| P3 | 300 m | Identify continuity limits |
-| P4 | 500 m | Assess time, energy, and reliability |
-| P5 | 1,000 m | Attempt target demonstration |
+| P0 | No vehicle motion | Profile, plan generation, coordinate validation, sequential state-machine dry run |
+| P1 | 50 m | One-segment baseline and observation logging |
+| P2 | 100–150 m | Multi-segment handoff and report generation |
+| P3 | 300 m | Sustained progress and segment completion |
+| P4 | 500 m | Time, power, sensing, and reliability |
+| P5 | 1,000 m | Full target demonstration, if earlier stages permit |
 
-Distance will increase only when the preceding test is safe and sufficiently stable. The baseline test took about 30 minutes for a destination initially 45 m away: **the time feasibility of a 1 km mission is not yet established**.
+The prior 45 m destination test took approximately 30 minutes. **Feasibility of a 1 km trial within practical time and energy limits remains unproven.**
 
-### 8.3. Metrics and Outcomes
+### 8.3. Evaluation Metrics
 
-Where available, record: initial and final distance to target; GPS accuracy and trajectory; duration; progress per unit time; actions, stops, and reverse movements; periods without guidance or perception; visual observations; human interventions; termination cause; and software version/configuration.
+**Planning:** valid plan generated; segment count; waypoint/map consistency; guideline-profile provenance; rejected plans; operator corrections.
 
-- **Completed:** GPS arrival threshold reached, with verifiable execution and no safety incidents.
-- **Partial:** Significant autonomous progress without reaching the destination.
-- **Interrupted:** Stop caused by safety concerns, failure, or operator intervention.
+**Execution:** completed segments; GPS distance and accuracy; elapsed time; progress rate; stops/reverses; perception and guidance availability; interventions; termination reason.
 
-Arrival within GPS tolerance **does not by itself prove** that the entire route was systematically surveyed.
+**Reconnaissance:** count and coverage of evidence-backed observations; missing/unknown values; image/log traceability; report completeness; observed versus inferred classifications.
 
-### 8.4. Safety
+**Outcomes:**
 
-Testing requires authorization, human supervision, emergency-stop capability, reliable communications, and operational boundaries. Avoid traffic, people, water, ditches, and drop-offs. Do not explore outside the permitted area. When perception or guidance is insufficient, prioritize a safe stop. Review reversing without rearward perception in particular.
+- **Completed:** validated segments executed and final GPS criterion reached, with a report linked to evidence and no unacceptable safety event.
+- **Partial:** some valid segments/progress/observations obtained, but B not reached.
+- **Aborted:** terminated due to safety, technical failure, or operator intervention; partial evidence retained.
 
-## 9. Schedule and Deliverables
+A generated plan alone is **not proof of doctrinal reasoning**; an arrival fix alone is **not proof of systematic reconnaissance**. Both require inspectable records.
 
-| Period | Work | Deliverable |
+### 8.4. Safety and Boundaries
+
+Operate only in authorized areas under human supervision, with a reliable emergency stop, communications, defined operating boundaries, and a recovery plan. Avoid traffic, people, water, drop-offs, and terrain with unacceptable uncertainty. Do not rely on a front camera for rearward clearance. If essential perception/guidance is unavailable or progress cannot be established safely, stop rather than improvise an unvalidated maneuver.
+
+## 9. Three-Week Plan and Deliverables
+
+| Period | Focus | Output |
 |---|---|---|
-| Week 1 | Analyze October 15 log, safety, and short tests | Quantified baseline and prioritized risks |
-| Week 2 | Increasing-distance tests and justified minimal fixes | Evidence of sustained autonomy |
-| Week 3 | Best feasible trial and meeting preparation | Video, trajectory, metrics, and report |
+| **Week 1** | Inspect existing code/logs; select map format; verify relevant doctrine passages; create profile and dry-run plan | Minimal valid plan and traceable guidelines |
+| **Week 2** | Add segment sequencing and observation logging/reporting with minimal changes; test 50–300 m | Verified plan-to-execution-to-report chain |
+| **Week 3** | Extend distance if safe; run best achievable trial; capture video and evidence | Demonstration, metrics, report, limitations |
 
-**Deliverables:** software commit/tag, mission order, configuration, raw logs, GPS trajectory, perception samples, metrics, report, and video. If 1 km is not reached, report the validated distance and limitations.
+**Deliverables:** versioned knowledge profile; mission request and map reference; generated/validated mission plan; software commit/tag; segment execution logs; GPS trajectory; perception/evidence records; reconnaissance report; video; list of limitations and interventions.
 
-## 10. Future Evolution
+**Fallback demonstration:** If 1 km is not feasible, show a shorter **fully evidenced end-to-end mission**, rather than claiming unverified range.
 
-RECON-1KM will provide a baseline for a future **Cognitive Runtime**: working, episodic, spatial, and procedural memory; dynamic task management; capability registry; and technical-document retrieval to support mission planning. Lower-level deterministic safety boundaries must remain in place.
+## 10. Future Evolution: Cognitive Runtime
 
-**This vision is outside the development commitment for RECON-1KM.**
+The mission is a stepping stone toward general cognitive resources: working/episodic/spatial/procedural memory, task management, capability registry, retrieval from complete technical publications, and adaptive replanning. None is required for this experiment. Deterministic safety and capability validation must remain independent of model-generated plans.
 
 ## 11. References and Traceability
 
-### Doctrinal Publications
+### Doctrine
 
-- **[D1]** Department of the Army. *ATP 3-20.98 — Reconnaissance Platoon* (2013). `docs/references/ATP 3-20.98 Reconnaissance Platoon 2013.pdf`.
-- **[D2]** *ATP 3-34.81 / MCRP 3-34.3 — Engineer Reconnaissance*, with Change 1. `docs/references/MCRP 3-34.3 (W CH 1) (SECURED).pdf`. **Cover, edition, and exact designations require verification.**
-- **[D3]** Department of the Army. *FM 3-25.26 — Map Reading and Land Navigation*. `docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf`; edition to be confirmed.
+- **[D1]** Department of the Army. *ATP 3-20.98 — Reconnaissance Platoon* (2013). Verify local edition and page references before detailed attribution.
+- **[D2]** *ATP 3-34.81 / MCRP 3-34.3 — Engineer Reconnaissance*, with Change 1. Local reference: `docs/references/MCRP 3-34.3 (W CH 1) (SECURED).pdf`. Verify cover, revision, and relevant passages.
+- **[D3]** Department of the Army. *FM 3-25.26 — Map Reading and Land Navigation*. Verify local edition and relevant passages.
 
-### Scientific Literature
+### Field Robotics
 
 - **[S1]** Borges et al. (2022). *A Survey on Terrain Traversability Analysis for Autonomous Ground Vehicles*. *Field Robotics*. https://doi.org/10.55417/fr.2022049
-- **[S2]** Beycimen, Ignatyev, and Zolotas (2023). *A Comprehensive Survey of Unmanned Ground Vehicle Terrain Traversability for Unstructured Environments and Sensor Technology Insights*. *Engineering Science and Technology, an International Journal*. https://doi.org/10.1016/j.jestch.2023.101457
-- **[S3]** *Terrain Traversability Analysis Methods for Unmanned Ground Vehicles: A Survey* (2013). *Engineering Applications of Artificial Intelligence*. https://doi.org/10.1016/j.engappai.2013.01.006
+- **[S2]** Beycimen, Ignatyev, and Zolotas (2023). *A Comprehensive Survey of Unmanned Ground Vehicle Terrain Traversability for Unstructured Environments and Sensor Technology Insights*. https://doi.org/10.1016/j.jestch.2023.101457
+- **[S3]** *Terrain Traversability Analysis Methods for Unmanned Ground Vehicles: A Survey* (2013). https://doi.org/10.1016/j.engappai.2013.01.006
 
-### Project Evidence
+### CognitiveOps Evidence
 
-- **[E1]** `GO_TO_POINT` field test, October 15, 2026. `goto_test_nav_cam_sol11_500tokens.log`. Report: `docs/field_tests/2026-10-15_goto_point_success/REPORT.md`.
-- **[E2]** CognitiveOps repository: https://github.com/jbruks/CognitiveOps; tag `fieldtest-2026-10-15-goto-point-success`.
+- **[E1]** October 15, 2026, `GO_TO_POINT` field trial: `goto_test_nav_cam_sol11_500tokens.log`; `docs/field_tests/2026-10-15_goto_point_success/REPORT.md`.
+- **[E2]** https://github.com/jbruks/CognitiveOps — tag `fieldtest-2026-10-15-goto-point-success`.
 
-> **Bibliographic control:** Doctrinal publications are used here as conceptual foundations, not as exhaustive quotations. **Before academic or formal distribution, cross-check the actual PDFs for editions, pages, and sections, and verify scientific article metadata.**
+**Source-integrity note:** This proposal identifies **conceptual links**, not verified verbatim quotations or specific paragraph citations. The knowledge profile must not be labeled doctrine-derived until the exact relevant passages in the archived manuals have been reviewed and referenced. Bibliographic metadata should be checked before external distribution.
 
 ---
 
 ## Conclusion
 
-RECON-1KM proposes a goal-directed terrain reconnaissance demonstration grounded in a real operational need and established field-robotics problems. Its contribution will be to measure **how far CognitiveOps can go using its already validated architecture**, without a preloaded route, while preserving evidence of observation, decision-making, and movement.
+**RECON-1KM now tests an end-to-end cognitive mission workflow:** **receive objective and map → apply verified doctrine-derived guidelines → plan and validate segments → execute with existing autonomy → collect reconnaissance observations → produce an evidence-based report**.
 
-The 1 km target is ambitious relative to the baseline. The project prioritizes **safety, honest measurement, and minimal changes**: demonstrate first, then expand.
+The intended innovation is modest in code but meaningful in system behavior. The experiment remains constrained by proven rover capabilities, safe operation, transparent evidence, and a three-week development window.
