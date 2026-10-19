@@ -101,7 +101,7 @@ perceptual richness over strict real-time performance.
 Remote VLM latency is therefore accepted as a known temporary limitation,
 not as a desired architectural property.
 
-Local perception optimization is paused at this point.
+Local perception optimization was initially paused at this point.\n\nThe experiment was subsequently reopened in 2026 with a hybrid\ndepth + traversability approach. See the update below.
 
 Future work may revisit:
 
@@ -120,3 +120,37 @@ It is not merged into the main development branch at this stage.
 The validated `v0.2-structured-perception` tag remains the stable
 architectural checkpoint, while active CognitiveOps development continues
 on `feature/l3-l4-gnc`.
+
+
+## 2026 Update — Depth + OFFSEG fusion
+
+The local perception experiment was revisited after the original segmentation-only
+evaluation.
+
+The previous conclusion identified monocular depth estimation, geometry processing,
+obstacle extraction, traversability reasoning, and sensor fusion as the missing
+components required for a useful local perception stack.
+
+A new hybrid pipeline has now been tested using:
+
+- Depth Anything V2 Small for local geometry, ground fitting, protrusion detection,
+  approximate distance estimation, and geometry confidence.
+- OFFSEG / BiSeNetV2 for off-road traversability segmentation.
+- A fusion layer that distinguishes between terrain relief and likely
+  non-traversable structure.
+
+The complete pipeline was replayed against the 177-frame CognitiveOps rover dataset.
+
+Observed mean local perception latency was approximately:
+
+- Depth Anything: 0.179 s/frame
+- OFFSEG: 0.039 s/frame
+- Combined pipeline: 0.238 s/frame
+
+The experiment shows that fast local perception can now provide a useful structured
+world-state precursor for the rover control loop, while retaining the VLM as an
+on-demand fallback for ambiguous or unsafe scenes.
+
+Detailed results:
+
+[Depth + OFFSEG Fusion Experiment](DEPTH_OFFSEG_FUSION.md)
