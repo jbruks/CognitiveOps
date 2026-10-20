@@ -6,6 +6,7 @@ import base64
 import json
 import os
 from rover_interfaces import PerceptionState
+from vision_nn import VisionNN
 
 from lite_world_model import WorldBuilder
 from lite_world_model import WorldModel
@@ -91,6 +92,7 @@ class PerceptionModule:
         self.mode = mode
         self.max_output_tokens = max_output_tokens
         self.worldbuilder = WorldBuilder()
+        self.vision_nn = VisionNN()
 
         # --- GPS SETUP ---
         # Perception only reads GPS state. It does not interpret mission, target,
@@ -297,6 +299,13 @@ class PerceptionModule:
         XLogger.log("Perception", "Image preprocessing START")
         
         frame = cv2.resize(frame, (320, 240))
+
+        vision_nn_result = self.vision_nn.analyze(frame)
+        XLogger.log(
+            "Perception",
+            f"VisionNN accepted={vision_nn_result.get('accepted', False)}",
+        )
+
         ok, buffer = cv2.imencode(".jpg", frame)
         image_bytes = buffer.tobytes() if ok else None
         if image_bytes is None:
