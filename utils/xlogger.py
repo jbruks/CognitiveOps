@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 class XLogger:
 
     ENABLED = True
@@ -15,7 +18,9 @@ class XLogger:
         if not cls.ENABLED:
             return
 
-        #indent = cls.INDENT.get(layer, "")
-        #print(f"{indent}[{layer}] {message}")
-        
-        print(f"[{layer}] {message}")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+        # indent = cls.INDENT.get(layer, "")
+        # print(f"{timestamp} {indent}[{layer}] {message}")
+
+        print(f"[{timestamp}] [{layer}] {message}")

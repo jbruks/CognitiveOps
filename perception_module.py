@@ -6,6 +6,7 @@ import base64
 import json
 import os
 from rover_interfaces import PerceptionState
+from vision_nn import VisionNN
 
 from lite_world_model import WorldBuilder
 from lite_world_model import WorldModel
@@ -83,12 +84,15 @@ class PerceptionModule:
         default_scenario: str = "corridor_forward",
         scenario_sequence: Optional[List[str]] = None,
         loop_sequence: bool = True,
-        gps_enabled=True
+        gps_enabled=True,
+        max_output_tokens: int = 500,
         
     ):
         XLogger.log("PerceptionModule", "__init__")
         self.mode = mode
+        self.max_output_tokens = max_output_tokens
         self.worldbuilder = WorldBuilder()
+        self.vision_nn = VisionNN()
 
         # --- GPS SETUP ---
         # Perception only reads GPS state. It does not interpret mission, target,
@@ -98,7 +102,11 @@ class PerceptionModule:
 
         if self.gps_enabled:
             try:
-                self.gps = GPSService()
+                #self.gps = GPSService()
+                self.gps = GPSService(
+                        history_size=120,
+                        min_heading_distance_m=3.0,
+                    )
                 self.gps.start()
                 XLogger.log("PerceptionModule", "GPSService started")
             except Exception as exc:
@@ -251,19 +259,30 @@ class PerceptionModule:
         LLM-based perception + image output
         """
         gps_state = self._observe_gps()
+        
 
+        
         if self.mode != "camera":
             state = self._observe_simulated()
+            world = self.worldbuilder.update(
+                rover_state=None,
+                perception_state=state,
+            )
+
             return PerceptionResult(
                 perception_state=state,
+                world_model=world,
                 gps_state=gps_state,
             )
-            #return state, None
             
+        XLogger.log("Perception", "Camera capture START") 
+        
         for _ in range(3):
             self.cap.grab()
             
         ret, frame = self.cap.read()
+
+        XLogger.log("Perception", "Camera capture END")
 
         if not ret:
             return PerceptionResult(
@@ -276,7 +295,186 @@ class PerceptionModule:
                 ),
                 gps_state=gps_state,
             )
+        
+        XLogger.log("Perception", "Image preprocessing START")
+        
         frame = cv2.resize(frame, (320, 240))
+
+        vision_nn_result = self.vision_nn.analyze(frame)
+        
+        ##############
+        
+        
+        XLogger.log(
+            "Perception",
+            "VisionNN " + json.dumps(
+                vision_nn_result,
+                separators=(",", ":"),
+            ),
+        )
+
+        ok, buffer = cv2.imencode(".jpg", frame)
+        image_bytes = buffer.tobytes() if ok else None
+
+        if image_bytes is None:
+            return PerceptionResult(
+                perception_state=PerceptionState(
+                    obstacle_ahead=False,
+                    free_direction="none",
+                    corridor_visible=False,
+                    summary="Encoding error",
+                    confidence=0.0,
+                ),
+                gps_state=gps_state,
+            )
+
+        # =====================================================
+        # VisionNN-only perception
+        # =====================================================
+
+        if vision_nn_result.get("source") == "vision_nn_fusion":
+
+            nn_regions = vision_nn_result.get("regions", {})
+            geometry_confidence = vision_nn_result.get(
+                "geometry_confidence",
+                "LOW",
+            )
+            temporal_stability = vision_nn_result.get(
+                "temporal_stability",
+                "UNKNOWN",
+            )
+
+            MIN_CANDIDATE_FRACTION = 0.02
+            MIN_NONTRAVERSABLE_FRACTION = 0.50
+            MIN_CLEARANCE_M = 1.0
+
+            regions = []
+            objects = []
+
+            region_traversable = {}
+
+            for name in ("left", "front", "right"):
+
+                r = nn_regions.get(name, {})
+
+                candidate_fraction = float(
+                    r.get("candidate_fraction", 0.0) or 0.0
+                )
+
+                traversable_fraction = float(
+                    r.get("traversable_fraction", 0.0) or 0.0
+                )
+
+                candidate_nontrav = r.get(
+                    "candidate_nontraversable_fraction"
+                )
+
+                distance = r.get("distance_p25_m")
+
+                blocking = (
+                    candidate_nontrav is not None
+                    and distance is not None
+                    and candidate_fraction >= MIN_CANDIDATE_FRACTION
+                    and candidate_nontrav >= MIN_NONTRAVERSABLE_FRACTION
+                    and distance <= MIN_CLEARANCE_M
+                )
+
+                traversable = not blocking
+                
+                region_traversable[name] = traversable
+
+                regions.append({
+                    "name": name,
+                    "traversable": traversable,
+                    "candidate_fraction": candidate_fraction,
+                    "traversable_fraction": traversable_fraction,
+                    "candidate_traversable_fraction":
+                        r.get("candidate_traversable_fraction"),
+                    "candidate_nontraversable_fraction":
+                        candidate_nontrav,
+                    "distance_p25_m": distance,
+                })
+
+                if blocking:
+                    objects.append({
+                        "type": "obstacle",
+                        "position": {
+                            "region": name,
+                        },
+                        "distance_m": distance,
+                        "traversable": False,
+                    })
+
+            front_traversable = region_traversable.get(
+                "front",
+                False,
+            )
+
+            left_traversable = region_traversable.get(
+                "left",
+                False,
+            )
+
+            right_traversable = region_traversable.get(
+                "right",
+                False,
+            )
+
+            obstacle_ahead = not front_traversable
+
+            if front_traversable:
+                free_direction = "center"
+            elif left_traversable:
+                free_direction = "left"
+            elif right_traversable:
+                free_direction = "right"
+            else:
+                free_direction = "none"
+
+            if geometry_confidence == "HIGH":
+                confidence = 0.9
+            elif geometry_confidence == "MEDIUM":
+                confidence = 0.7
+            else:
+                confidence = 0.3
+
+            summary = (
+                f"VisionNN geometry={geometry_confidence} "
+                f"temporal={temporal_stability} "
+                f"free={free_direction}"
+            )
+
+            state = PerceptionState(
+                obstacle_ahead=obstacle_ahead,
+                free_direction=free_direction,
+                corridor_visible=front_traversable,
+                summary=summary,
+                confidence=confidence,
+                objects=objects,
+                regions=regions,
+                perception_prompt_result=json.dumps(
+                    vision_nn_result,
+                    separators=(",", ":"),
+                ),
+            )
+
+            world = self.worldbuilder.update(
+                rover_state=None,
+                perception_state=state,
+            )
+
+            return PerceptionResult(
+                perception_state=state,
+                world_model=world,
+                image_bytes=image_bytes,
+                gps_state=gps_state,
+            )
+        
+        
+        ##############
+        
+        
+
         ok, buffer = cv2.imencode(".jpg", frame)
         image_bytes = buffer.tobytes() if ok else None
         if image_bytes is None:
@@ -301,255 +499,99 @@ class PerceptionModule:
             )
 
         # 🧠 LLM percepción
-        
+
         perception_prompt = """
-You are the perception and navigation layer of an autonomous ground rover using a low-resolution monocular RGB web camera.
+You are the visual perception system of an Axial SCX10 II
+4x4 rock crawler, approximately 0.30 m wide, with standard
+axles and approximately 0.07 m minimum ground clearance.
 
-Your task is to analyze a single camera frame and generate ONLY valid JSON describing:
+This rover is designed to traverse gravel, loose dirt,
+small stones, grass, and moderately uneven terrain.
 
-* terrain
-* traversability
-* obstacles
-* visibility
-* navigation
+Camera perspective can make small stones near the camera
+appear much larger than they really are.
 
-The rover platform is:
+Analyze the image only for immediate local navigation.
 
-* AXIAL SCX III 1:10 crawler
-* 4x4 traction
-* Length: 0.50 meters
-* Width: 0.30 meters
-* Height: 0.30 meters
-* Speed: 3 km/h
-* Navigation step size: 1 meter
-* Camera mounted 25cm from ground level
+Evaluate exactly these five rover-relative regions:
+left, front-left, front, front-right, right.
 
-The rover operates outdoors on:
+For each region determine:
+- traversable: true or false
+- risk: low, medium, or high
 
-* grass
-* dirt
-* stone
-* pavement
-* uneven terrain
+Report only obstacles that meaningfully restrict or endanger
+the movement of this specific rover.
 
-==================================================
-PERCEPTION RULES
-================
+Gravel, scattered small stones, loose dirt, sparse grass,
+and minor surface irregularities are traversable terrain.
+Do not report them as individual obstacles.
 
-* Be conservative and safety-oriented
-* NEVER hallucinate unseen objects
-* Infer ONLY what is visually observable
-* If uncertain, reduce confidence
-* Monocular depth estimation is approximate
-* Small obstacles may be partially hidden by grass
-* Assume the rover moves on the ground plane
-* Use rover-centric coordinates and directions
-* Focus on immediate traversability
-* Prefer false negatives over false positives
-* Do not invent terrain behind obstacles
-* Avoid overestimating visibility range
-* Distances are approximate
-* Terrain beyond visibility range is unknown
+A stone is not a blocking obstacle merely because it appears
+large in the foreground of the image.
 
-==================================================
-FIELD OF VIEW MODEL
-===================
+Report rocks, rigid objects, dense vegetation, holes, drops,
+water, and other hazards when they could prevent safe passage.
 
-Assume camera field of view:
+Do not assume that an uncertain obstacle is safely passable.
 
-* Horizontal FOV: 70 degrees
-* Vertical FOV: 50 degrees
+Do NOT report sparse grass, isolated grass stems, flexible weeds,
+or light vegetation as obstacles when the rover can reasonably
+push through or pass over them.
 
-Divide image horizontally into:
+Treat such vegetation as part of the traversable terrain,
+even if it is tall enough to appear prominently in the image.
 
-* LEFT: 30° to 60°
-* FRONT-LEFT: 60° to 85°
-* FRONT: 85° to 95°
-* FRONT-RIGHT: 95° to 120°
-* RIGHT: 120° to 150°
+Report dense or rigid vegetation as an obstacle when it forms
+a physical barrier.
 
-Distance bands:
+Also report solid obstacles, large rocks, trunks, walls, holes,
+drops, water, and other hazards that could prevent safe passage.
 
-* IMMEDIATE: 0.0m to 0.5m
-* NEAR: 0.5m to 2.0m
-* MID: 2.0m to 5.0m
-* FAR: 5.0m to visibility limit
+An obstacle must represent a real restriction on rover movement,
+not merely something visible in the camera image.
 
-==================================================
-TRAVERSABILITY RULES
-====================
+For each obstacle estimate:
+- region
+- distance_m
 
-Terrain is traversable when:
+The rover can traverse grass, dirt, gravel, small rocks, pavement,
+and moderately uneven continuous terrain.
 
-* slope is low
-* no large obstacle is visible
-* terrain roughness is acceptable
-* estimated obstacle height is below wheel capability
+Dense vegetation, walls, large obstacles, drops, water, and blocked
+areas are not traversable.
 
-Terrain is NOT traversable when:
+Do not identify or describe objects.
+Do not infer anything not visible.
+Do not choose a rover action.
 
-* wall
-* deep hole
-* large rock
-* water
-* dense vegetation
-* obstacle larger than wheel clearance
-* unknown unsafe region
-
-Grass is usually traversable.
-Tile edges smaller than 5 cm are traversable.
-Small grass clumps are traversable.
-Dense bushes and walls are not traversable.
-
-==================================================
-OBJECT SIZE RULES
-=================
-
-Object size is estimated radius in centimeters.
-
-Examples:
-
-* small stone: 20
-* grass clump: 5
-* plant pot: 20
-* chair: 35
-* bush: 100
-
-==================================================
-CONFIDENCE RULES
-================
-
-Confidence range:
-
-* 0.90 to 1.00 = very clear
-* 0.70 to 0.89 = probable
-* 0.40 to 0.69 = uncertain
-* below 0.40 = weak evidence
-
-Low-resolution or distant objects must reduce confidence.
-
-==================================================
-OUTPUT RULES
-============
-
-* Output ONLY valid JSON
-* No markdown
-* No explanations
-* No comments
-* No extra text
-* Use meters
-* Use decimal numbers
-* Use null when estimation is unreliable
-* Keep summary concise and technical
-* All JSON keys must always exist
-* Arrays must exist even if empty
-
-==================================================
-RETURN EXACTLY THIS JSON SCHEMA
-===============================
+Return ONLY valid JSON:
 
 {
-"frame_context": 
-{
-"camera_height_m": 0.12,
-"estimated_pitch_deg": -5,
-"horizontal_fov_deg": 70,
-"vertical_fov_deg": 50
-},
-
-"regions": 
-[
-{
-"name": "front",
-"azimuth_range_deg": [85, 95],
-"distance_range_m": [0.5, 5.0],
-"surface_type": "grass",
-"terrain_roughness": "low",
-"estimated_friction": "medium",
-"slope": "0 degrees",
-"traversable": true,
-"risk_level": "low",
-"confidence": 0.82
-}
-],
-
-"objects": 
-[
-{
-  "type": "chair",
-  "category": "static_obstacle",
-  "position": 
-  {
-    "region": "left",
-    "azimuth_deg": 42
-  },
-  "distance_m": 5.8,
-  "size_radius_m": 0.35,
-  "estimated_height_m": 0.8,
-  "traversable": false,
-  "risk_level": "low",
-  "confidence": 0.84
-}
-],
-
-
-"visibility": 
-{
-"lighting": "good",
-"image_quality": "medium",
-"visible_range_m": 8.0
-},
-
-
+  "regions": [
+    {"name":"left","traversable":true,"risk":"low"},
+    {"name":"front-left","traversable":true,"risk":"low"},
+    {"name":"front","traversable":true,"risk":"low"},
+    {"name":"front-right","traversable":true,"risk":"low"},
+    {"name":"right","traversable":true,"risk":"low"}
+  ],
+  "obstacles": [],
+  "confidence":0.8
 }
 
-"summary": "Flat paved terrain ahead with sparse grass. Central region is traversable with low collision risk.",
+All five regions must always be present.
+obstacles may be empty.
+confidence must be between 0.0 and 1.0.
+"""
 
-"overall_confidence": 0.84
-}   
 
-"""     
-        
-        
-        
-        perception_prompt_2 = """
-    You are the perception layer of an autonomous rover.
-
-    Analyze the image and return ONLY valid JSON:
-
-    {
-  "navigation": {
-    "free_direction": "left",
-    "corridor_visible": true,
-    "risk_level": "moderate"
-  },
-
-  "objects": [
-    {
-      "type": "obstacle",
-      "position": "front-left",
-      "distance_m": 1.5
-    }
-  ],
-
-  "regions": [
-    {
-      "name": "ahead",
-      "terrain": "rough"
-    }
-  ],
-
-  "summary": "short navigation summary",
-
-  "confidence": 0.8
-}
-
-    Rules:
-    - Be conservative
-    - Focus on obstacles and traversability
-    """
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+        
+        XLogger.log("Perception", "Image preprocessing END")
+        
         try:
+            XLogger.log("Perception", "LLM request START")
+            
             response = self.llm_client.responses.create(
                 model="gpt-5.4",
                 input=[
@@ -562,26 +604,125 @@ RETURN EXACTLY THIS JSON SCHEMA
                     }
                 ],
                 temperature=0,
-                max_output_tokens=2000,
+                max_output_tokens=self.max_output_tokens,
             )
+            
+            XLogger.log("Perception", "LLM request END")
+                
             text = response.output_text.strip()
             
             XLogger.log("Perception - Observe_llm - Prompt Result:", text)
             
             data = json.loads(text)
-            navigation = data.get("navigation", {})
+            
+            
+            ##########################################
             objects = data.get("objects", [])
+            obstacles = data.get("obstacles", [])
             regions = data.get("regions", [])
+            confidence = float(data.get("confidence", 0.0))
+            
+            # Convert compact VLM obstacles to the existing internal object format
+            objects = [
+                {
+                    "type": "obstacle",
+                    "position": {
+                        "region": obstacle.get("region", "unknown")
+                    },
+                    "distance_m": obstacle.get("distance_m"),
+                    "traversable": False,
+                }
+                for obstacle in obstacles
+            ]
+
+            regions_by_name = {
+                region.get("name"): region
+                for region in regions
+            }
+
+            front = regions_by_name.get("front", {})
+            front_left = regions_by_name.get("front-left", {})
+            front_right = regions_by_name.get("front-right", {})
+            left = regions_by_name.get("left", {})
+            right = regions_by_name.get("right", {})
+
+            # Visual traversability reported by the VLM
+            front_visual = bool(front.get("traversable", False))
+
+            left_visual = bool(
+                front_left.get("traversable", False)
+                or left.get("traversable", False)
+            )
+
+            right_visual = bool(
+                front_right.get("traversable", False)
+                or right.get("traversable", False)
+            )
+
+
+            # Nearby obstacles block the corresponding movement corridor
+            MIN_CLEARANCE_M = 1
+
+            blocked_regions = set()
+
+            for obstacle in obstacles:
+                distance = obstacle.get("distance_m")
+                region = obstacle.get("region")
+
+                if (
+                    distance is not None
+                    and region is not None
+                    and distance <= MIN_CLEARANCE_M
+                ):
+                    blocked_regions.add(region)
+
+
+            # Clearance for each possible movement direction
+            front_clear = not any(
+                region in blocked_regions
+                for region in ("front-left", "front", "front-right")
+            )
+
+            left_clear = not any(
+                region in blocked_regions
+                for region in ("left", "front-left")
+            )
+
+            right_clear = not any(
+                region in blocked_regions
+                for region in ("front-right", "right")
+            )
+
+
+            # Final traversability = visual perception + geometric clearance
+            front_traversable = front_visual and front_clear
+            left_traversable = left_visual and left_clear
+            right_traversable = right_visual and right_clear
+
+            obstacle_ahead = not front_traversable
+
+            if front_traversable:
+                free_direction = "center"
+            elif left_traversable:
+                free_direction = "left"
+            elif right_traversable:
+                free_direction = "right"
+            else:
+                free_direction = "none"
+
             state = PerceptionState(
-                obstacle_ahead=len(objects) > 0,
-                free_direction=str(navigation.get("free_direction", "none")),
-                corridor_visible=bool(navigation.get("corridor_visible", False)),
+                obstacle_ahead=obstacle_ahead,
+                free_direction=free_direction,
+                corridor_visible=front_traversable,
                 summary=str(data.get("summary", "")),
-                confidence=float(data.get("confidence", 0.0)),
+                #confidence=float(data.get("overall_confidence", 0.0)),
+                confidence=confidence,
                 objects=objects,
                 regions=regions,
-                perception_prompt_result = response.output_text.strip()
+                perception_prompt_result=response.output_text.strip(),
             )
+            ##########################################
+            
 
             #state = PerceptionState(
             #    obstacle_ahead=bool(data.get("obstacle_ahead", False)),
@@ -607,9 +748,11 @@ RETURN EXACTLY THIS JSON SCHEMA
             
             return PerceptionResult(
                 perception_state=state,
+                world_model=world,
                 image_bytes=image_bytes,
-                gps_state=gps_state)
-            
+                gps_state=gps_state
+            )
+                        
 
 
     def close(self):

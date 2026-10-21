@@ -27,6 +27,11 @@ class WorldBuilder:
         self.world.regions = []
         self.world.relationships = []
         self.world.affordances = []
+        self.world.confidence = getattr(
+            perception_state,
+            "confidence",
+            0.0,
+        )
         # =========================
         # Navigation cognition
         # =========================
@@ -61,22 +66,24 @@ class WorldBuilder:
         # =========================
         # Minimal object population
         # =========================
-        for obj in perception_state.objects:
+        for i, obj in enumerate(perception_state.objects):
+            position = obj.get("position", {})
+
             obstacle = ObjectNode(
-                id="obstacle_1",
-                object_type="obstacle",
-                relative_position="front",
-                distance_m=1.5,
+                id=f"obstacle_{i + 1}",
+                object_type=obj.get("type", "obstacle"),
+                relative_position=position.get("region", "unknown"),
+                distance_m=obj.get("distance_m"),
                 risk_level=navigation.risk_level,
                 confidence=getattr(
                     perception_state,
                     "confidence",
                     0.8,
                 ),
+
             )
-            self.world.objects.append(
-                obstacle
-            )
+
+            self.world.objects.append(obstacle)
         # =========================
         # Minimal region population
         # =========================
