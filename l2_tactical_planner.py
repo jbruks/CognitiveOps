@@ -13,7 +13,6 @@ from decision_validator import (
 )
 from fallback_guidance import FallbackGuidance
 from llm_decision import TacticalLLMDecisionMaker
-from prompt_builder import build_tactical_prompt
 from rover_interfaces import TacticalAction
 from perception_module import PerceptionResult
 
@@ -45,29 +44,130 @@ class L2TacticalPlanner:
         # 🔢 contador global
         #self.sim_counter = 0
 
+    def _build_qwen_safety_prompt(self, perception_state) -> str:
+        return f"""
+You are a rover safety controller.
+
+Choose exactly ONE result from:
+SAFE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT, MOVE_BACKWARD
+
+Rules:
+- If obstacle_ahead == true and free_direction == left -> FORWARD_LEFT
+- If obstacle_ahead == true and free_direction == right -> FORWARD_RIGHT
+- If obstacle_ahead == true and free_direction is anything else -> MOVE_BACKWARD
+- Otherwise -> SAFE_FORWARD
+
+Input:
+obstacle_ahead={str(perception_state.obstacle_ahead).lower()}
+free_direction={perception_state.free_direction}
+
+Return only the result.
+""".strip()
+
+    def _build_qwen_heading_prompt(self, l3_task) -> str:
+        heading_error = l3_task.get("heading_error_deg")
+
+        return f"""
+You are a rover heading controller.
+
+Choose exactly ONE action from:
+MOVE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT
+
+Rules:
+- If heading_error_deg > 8 -> FORWARD_RIGHT
+- If heading_error_deg < -8 -> FORWARD_LEFT
+- Otherwise -> MOVE_FORWARD
+
+Input:
+heading_error_deg={heading_error}
+
+Return only the action.
+""".strip()
+
+    @staticmethod
+    def _normalize_llm_token(raw_response: str) -> str:
+        token = raw_response.strip()
+        if token.startswith("ACTION="):
+            token = token[len("ACTION="):].strip()
+        return token.splitlines()[0].strip()
+
     def decide_action_with_llm(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
+        XLogger.log("L2", "Decide action with split Qwen L2 ...")
 
-        XLogger.log("L2", "Decide action with llm ...")
+        if perception_state is None:
+            raise RuntimeError("Perception state unavailable")
 
+        # LOW perception confidence:
+        # deterministic conservative action, no Qwen call.
+        if perception_state.confidence <= 0.3:
+            raw_response = "ACTION=MOVE_BACKWARD"
+            prompt = "DETERMINISTIC_LOW_CONFIDENCE"
 
-        prompt = build_tactical_prompt(
-            rover_state,
-            perception_state,
-            l3_task,
-            gps_state,
-        )
+            XLogger.log(
+                "L2",
+                "LOW confidence -> deterministic MOVE_BACKWARD"
+            )
 
+        else:
+            # Qwen only handles the safety / obstacle microtask.
+            safety_prompt = self._build_qwen_safety_prompt(perception_state)
+            safety_raw = self.llm.decide(safety_prompt)
+            safety_result = self._normalize_llm_token(safety_raw)
 
-        # DEBUG: ver exactamente qué recibe L2
-        #XLogger.log("L2", f"Tactical prompt:\n{prompt}")
+            allowed_safety_results = {
+                "SAFE_FORWARD",
+                "FORWARD_LEFT",
+                "FORWARD_RIGHT",
+                "MOVE_BACKWARD",
+            }
 
-        raw_response = self.llm.decide(prompt)
+            if safety_result not in allowed_safety_results:
+                raise ValueError(
+                    f"Invalid Qwen safety result: {safety_result!r}"
+                )
 
-        #XLogger.log("L2", f"LLM raw response: {raw_response}")
+            XLogger.log(
+                "L2",
+                f"Qwen safety result: {safety_result}"
+            )
+
+            if safety_result == "SAFE_FORWARD":
+                # Heading is deterministic.
+                heading_error = l3_task.get("heading_error_deg")
+
+                if heading_error is None:
+                    heading_result = "MOVE_FORWARD"
+
+                elif heading_error > 8:
+                    heading_result = "FORWARD_RIGHT"
+
+                elif heading_error < -8:
+                    heading_result = "FORWARD_LEFT"
+
+                else:
+                    heading_result = "MOVE_FORWARD"
+
+                XLogger.log(
+                    "L2",
+                    f"Deterministic heading: error={heading_error} -> {heading_result}"
+                )
+
+                raw_response = f"ACTION={heading_result}"
+
+                prompt = (
+                    "=== QWEN SAFETY PROMPT ===\n"
+                    f"{safety_prompt}\n\n"
+                    "=== DETERMINISTIC HEADING ===\n"
+                    f"heading_error_deg={heading_error}\n"
+                    f"action={heading_result}"
+                )
+
+            else:
+                # Safety decision overrides heading.
+                raw_response = f"ACTION={safety_result}"
+                prompt = safety_prompt
 
         parsed_action = parse_llm_response(raw_response)
-
-        #XLogger.log("L2", f"LLM parsed action: {parsed_action.value}")
 
         validated_action = validate_action(
             parsed_action,
@@ -75,10 +175,13 @@ class L2TacticalPlanner:
             perception_state,
         )
 
-        XLogger.log("L2", f"Validated action: {validated_action.value}")
+        XLogger.log(
+            "L2",
+            f"Validated action: {validated_action.value}"
+        )
 
         return validated_action, raw_response, prompt
-
+        
     def decide_action(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
         XLogger.log("L2", "Decide_action...")
         if not self.llm_enabled:
@@ -334,3 +437,4 @@ class L2TacticalPlanner:
             i=i+1
             self.step()
             time.sleep(delay_s)
+

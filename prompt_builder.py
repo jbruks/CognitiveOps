@@ -138,3 +138,43 @@ def build_tactical_prompt(rover_state, perception_state, l3_task, gps_state=None
         Output format:
         ACTION=<one allowed action>
         """.strip()
+        
+def build_tactical_prompt_qwen(rover_state, perception_state, l3_task, gps_state=None) -> str:
+    heading_error = l3_task.get("heading_error_deg", "UNKNOWN")
+
+    return f"""
+Choose exactly one action.
+
+Priority 1:
+confidence == 0.3
+-> MOVE_BACKWARD
+
+Priority 2:
+obstacle_ahead == true AND free_direction == left
+-> FORWARD_LEFT
+
+obstacle_ahead == true AND free_direction == right
+-> FORWARD_RIGHT
+
+obstacle_ahead == true AND free_direction == none
+-> MOVE_BACKWARD
+
+Priority 3:
+obstacle_ahead == false AND heading_error_deg > 8
+-> FORWARD_RIGHT
+
+obstacle_ahead == false AND heading_error_deg < -8
+-> FORWARD_LEFT
+
+obstacle_ahead == false AND -8 <= heading_error_deg <= 8
+-> MOVE_FORWARD
+
+Input:
+confidence={perception_state.confidence}
+obstacle_ahead={str(perception_state.obstacle_ahead).lower()}
+free_direction={perception_state.free_direction}
+heading_error_deg={heading_error}
+
+Return only:
+ACTION=<action>
+""".strip()

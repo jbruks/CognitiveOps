@@ -1,8 +1,10 @@
 LLM_ENABLED = True
 USE_FALLBACK_ON_ERROR = True
 
-LLM_BACKEND = "openai"
+#LLM_BACKEND = "openai"
+LLM_BACKEND = "ollama"
 OPENAI_MODEL = "gpt-5.4"
+OLLAMA_MODEL = "qwen2.5:7b"
 LLM_DEBUG = True
 
 LOOP_DELAY_S = 1

@@ -301,10 +301,179 @@ class PerceptionModule:
         frame = cv2.resize(frame, (320, 240))
 
         vision_nn_result = self.vision_nn.analyze(frame)
+        
+        ##############
+        
+        
         XLogger.log(
             "Perception",
-            f"VisionNN accepted={vision_nn_result.get('accepted', False)}",
+            "VisionNN " + json.dumps(
+                vision_nn_result,
+                separators=(",", ":"),
+            ),
         )
+
+        ok, buffer = cv2.imencode(".jpg", frame)
+        image_bytes = buffer.tobytes() if ok else None
+
+        if image_bytes is None:
+            return PerceptionResult(
+                perception_state=PerceptionState(
+                    obstacle_ahead=False,
+                    free_direction="none",
+                    corridor_visible=False,
+                    summary="Encoding error",
+                    confidence=0.0,
+                ),
+                gps_state=gps_state,
+            )
+
+        # =====================================================
+        # VisionNN-only perception
+        # =====================================================
+
+        if vision_nn_result.get("source") == "vision_nn_fusion":
+
+            nn_regions = vision_nn_result.get("regions", {})
+            geometry_confidence = vision_nn_result.get(
+                "geometry_confidence",
+                "LOW",
+            )
+            temporal_stability = vision_nn_result.get(
+                "temporal_stability",
+                "UNKNOWN",
+            )
+
+            MIN_CANDIDATE_FRACTION = 0.02
+            MIN_NONTRAVERSABLE_FRACTION = 0.50
+            MIN_CLEARANCE_M = 1.0
+
+            regions = []
+            objects = []
+
+            region_traversable = {}
+
+            for name in ("left", "front", "right"):
+
+                r = nn_regions.get(name, {})
+
+                candidate_fraction = float(
+                    r.get("candidate_fraction", 0.0) or 0.0
+                )
+
+                traversable_fraction = float(
+                    r.get("traversable_fraction", 0.0) or 0.0
+                )
+
+                candidate_nontrav = r.get(
+                    "candidate_nontraversable_fraction"
+                )
+
+                distance = r.get("distance_p25_m")
+
+                blocking = (
+                    candidate_nontrav is not None
+                    and distance is not None
+                    and candidate_fraction >= MIN_CANDIDATE_FRACTION
+                    and candidate_nontrav >= MIN_NONTRAVERSABLE_FRACTION
+                    and distance <= MIN_CLEARANCE_M
+                )
+
+                traversable = not blocking
+                
+                region_traversable[name] = traversable
+
+                regions.append({
+                    "name": name,
+                    "traversable": traversable,
+                    "candidate_fraction": candidate_fraction,
+                    "traversable_fraction": traversable_fraction,
+                    "candidate_traversable_fraction":
+                        r.get("candidate_traversable_fraction"),
+                    "candidate_nontraversable_fraction":
+                        candidate_nontrav,
+                    "distance_p25_m": distance,
+                })
+
+                if blocking:
+                    objects.append({
+                        "type": "obstacle",
+                        "position": {
+                            "region": name,
+                        },
+                        "distance_m": distance,
+                        "traversable": False,
+                    })
+
+            front_traversable = region_traversable.get(
+                "front",
+                False,
+            )
+
+            left_traversable = region_traversable.get(
+                "left",
+                False,
+            )
+
+            right_traversable = region_traversable.get(
+                "right",
+                False,
+            )
+
+            obstacle_ahead = not front_traversable
+
+            if front_traversable:
+                free_direction = "center"
+            elif left_traversable:
+                free_direction = "left"
+            elif right_traversable:
+                free_direction = "right"
+            else:
+                free_direction = "none"
+
+            if geometry_confidence == "HIGH":
+                confidence = 0.9
+            elif geometry_confidence == "MEDIUM":
+                confidence = 0.7
+            else:
+                confidence = 0.3
+
+            summary = (
+                f"VisionNN geometry={geometry_confidence} "
+                f"temporal={temporal_stability} "
+                f"free={free_direction}"
+            )
+
+            state = PerceptionState(
+                obstacle_ahead=obstacle_ahead,
+                free_direction=free_direction,
+                corridor_visible=front_traversable,
+                summary=summary,
+                confidence=confidence,
+                objects=objects,
+                regions=regions,
+                perception_prompt_result=json.dumps(
+                    vision_nn_result,
+                    separators=(",", ":"),
+                ),
+            )
+
+            world = self.worldbuilder.update(
+                rover_state=None,
+                perception_state=state,
+            )
+
+            return PerceptionResult(
+                perception_state=state,
+                world_model=world,
+                image_bytes=image_bytes,
+                gps_state=gps_state,
+            )
+        
+        
+        ##############
+        
+        
 
         ok, buffer = cv2.imencode(".jpg", frame)
         image_bytes = buffer.tobytes() if ok else None
