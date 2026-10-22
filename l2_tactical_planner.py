@@ -62,9 +62,10 @@ The target heading is a preference, not an obligation on every cycle.
 You may temporarily follow another passable corridor to go around obstacles.
 Choose a short local maneuver. Perception will be refreshed after each maneuver.
 
-Never choose a blocked corridor.
-Never reverse.
-If no useful safe movement is possible, choose HOLD.
+Never choose a blocked forward corridor.
+The three corridor flags describe only the forward field of view.
+MOVE_BACKWARD is available as a recovery maneuver.
+The rear area is assumed clear for this controlled test.
 
 NAVIGATION:
 heading_error_deg={l3_task.get("heading_error_deg")}
@@ -80,7 +81,7 @@ Return exactly ONE action:
 MOVE_FORWARD
 FORWARD_LEFT
 FORWARD_RIGHT
-HOLD
+MOVE_BACKWARD
 """.strip()
 
     @staticmethod
@@ -111,7 +112,7 @@ HOLD
             gpt_raw = self.llm.decide(prompt)
             result = self._normalize_llm_token(gpt_raw)
 
-            if result not in {"MOVE_FORWARD", "FORWARD_LEFT", "FORWARD_RIGHT", "HOLD"}:
+            if result not in {"MOVE_FORWARD", "FORWARD_LEFT", "FORWARD_RIGHT", "MOVE_BACKWARD"}:
                 raise ValueError(f"Invalid GPT tactical result: {result!r}")
 
             XLogger.log("L2", f"GPT tactical result: {result}")
@@ -273,6 +274,22 @@ HOLD
         # Three-sector GPT V3.2 safety: stop manoeuvres that contradict perception.
         # Never authorize an automatic reverse from monocular forward vision.
         if action == TacticalAction.MOVE_BACKWARD:
+            # Recovery: only when all three forward corridors are blocked.
+            regions = {
+                r.get("name"): r.get("traversable")
+                for r in (perception_state.regions or [])
+                if isinstance(r, dict)
+            }
+
+            if (
+                set(regions) == {"left", "front", "right"}
+                and all(regions[d] is False for d in ("left", "front", "right"))
+                and perception_state.confidence > 0.3
+            ):
+                XLogger.log("L2", "[SAFETY] Backward recovery authorized")
+                return TacticalAction.MOVE_BACKWARD
+
+            XLogger.log("L2", "[SAFETY] Backward recovery rejected")
             return TacticalAction.HOLD
 
         if perception_state.confidence <= 0.3:
