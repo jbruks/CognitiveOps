@@ -44,44 +44,43 @@ class L2TacticalPlanner:
         # 🔢 contador global
         #self.sim_counter = 0
 
-    def _build_gpt_safety_prompt(self, perception_state) -> str:
-        return f"""
-You are a rover safety controller.
+    def _build_gpt_navigation_prompt(self, perception_state, l3_task):
+        directions = {}
+        for region in (perception_state.regions or []):
+            if isinstance(region, dict) and region.get("name") in ("left", "front", "right"):
+                if type(region.get("traversable")) is bool:
+                    directions[region["name"]] = region["traversable"]
 
-Choose exactly ONE result from:
-SAFE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT, HOLD
-
-Rules:
-- If obstacle_ahead == true and free_direction == left -> FORWARD_LEFT
-- If obstacle_ahead == true and free_direction == right -> FORWARD_RIGHT
-- If obstacle_ahead == true and free_direction is anything else -> HOLD
-- Otherwise -> SAFE_FORWARD
-
-Input:
-obstacle_ahead={str(perception_state.obstacle_ahead).lower()}
-free_direction={perception_state.free_direction}
-
-Return only the result.
-""".strip()
-
-    def _build_gpt_heading_prompt(self, l3_task) -> str:
-        heading_error = l3_task.get("heading_error_deg")
+        if set(directions) != {"left", "front", "right"}:
+            raise ValueError("Incomplete three-sector perception")
 
         return f"""
-You are a rover heading controller.
+You are the tactical navigation controller of a ground rover.
 
-Choose exactly ONE action from:
-MOVE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT
+Navigate toward the target while avoiding obstacles.
+The target heading is a preference, not an obligation on every cycle.
+You may temporarily follow another passable corridor to go around obstacles.
+Choose a short local maneuver. Perception will be refreshed after each maneuver.
 
-Rules:
-- If heading_error_deg > 8 -> FORWARD_RIGHT
-- If heading_error_deg < -8 -> FORWARD_LEFT
-- Otherwise -> MOVE_FORWARD
+Never choose a blocked corridor.
+Never reverse.
+If no useful safe movement is possible, choose HOLD.
 
-Input:
-heading_error_deg={heading_error}
+NAVIGATION:
+heading_error_deg={l3_task.get("heading_error_deg")}
+distance_remaining_m={l3_task.get("distance_remaining_m")}
 
-Return only the action.
+TRAVERSABLE CORRIDORS:
+left={str(directions["left"]).lower()}
+front={str(directions["front"]).lower()}
+right={str(directions["right"]).lower()}
+confidence={perception_state.confidence}
+
+Return exactly ONE action:
+MOVE_FORWARD
+FORWARD_LEFT
+FORWARD_RIGHT
+HOLD
 """.strip()
 
     @staticmethod
@@ -92,80 +91,31 @@ Return only the action.
         return token.splitlines()[0].strip()
 
     def decide_action_with_llm(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
-        XLogger.log("L2", "Decide action with split GPT L2 ...")
+        XLogger.log("L2", "Decide action with GPT tactical navigation ...")
 
         if perception_state is None:
             raise RuntimeError("Perception state unavailable")
 
-        # LOW perception confidence:
-        # deterministic conservative action, no GPT call.
-        if perception_state.confidence <= 0.3:
+        if l3_task.get("heading_error_deg") is None:
+            XLogger.log("L2", "Missing heading -> HOLD")
+            raw_response = "ACTION=HOLD"
+            prompt = "DETERMINISTIC_MISSING_HEADING"
+
+        elif perception_state.confidence <= 0.3:
+            XLogger.log("L2", "LOW confidence -> HOLD")
             raw_response = "ACTION=HOLD"
             prompt = "DETERMINISTIC_LOW_CONFIDENCE"
 
-            XLogger.log(
-                "L2",
-                "LOW confidence -> deterministic HOLD"
-            )
-
         else:
-            # GPT only handles the safety / obstacle microtask.
-            safety_prompt = self._build_gpt_safety_prompt(perception_state)
-            safety_raw = self.llm.decide(safety_prompt)
-            safety_result = self._normalize_llm_token(safety_raw)
+            prompt = self._build_gpt_navigation_prompt(perception_state, l3_task)
+            gpt_raw = self.llm.decide(prompt)
+            result = self._normalize_llm_token(gpt_raw)
 
-            allowed_safety_results = {
-                "SAFE_FORWARD",
-                "FORWARD_LEFT",
-                "FORWARD_RIGHT",
-                "HOLD",
-            }
+            if result not in {"MOVE_FORWARD", "FORWARD_LEFT", "FORWARD_RIGHT", "HOLD"}:
+                raise ValueError(f"Invalid GPT tactical result: {result!r}")
 
-            if safety_result not in allowed_safety_results:
-                raise ValueError(
-                    f"Invalid GPT safety result: {safety_result!r}"
-                )
-
-            XLogger.log(
-                "L2",
-                f"GPT safety result: {safety_result}"
-            )
-
-            if safety_result == "SAFE_FORWARD":
-                # Heading is deterministic.
-                heading_error = l3_task.get("heading_error_deg")
-
-                if heading_error is None:
-                    heading_result = "MOVE_FORWARD"
-
-                elif heading_error > 8:
-                    heading_result = "FORWARD_RIGHT"
-
-                elif heading_error < -8:
-                    heading_result = "FORWARD_LEFT"
-
-                else:
-                    heading_result = "MOVE_FORWARD"
-
-                XLogger.log(
-                    "L2",
-                    f"Deterministic heading: error={heading_error} -> {heading_result}"
-                )
-
-                raw_response = f"ACTION={heading_result}"
-
-                prompt = (
-                    "=== GPT SAFETY PROMPT ===\n"
-                    f"{safety_prompt}\n\n"
-                    "=== DETERMINISTIC HEADING ===\n"
-                    f"heading_error_deg={heading_error}\n"
-                    f"action={heading_result}"
-                )
-
-            else:
-                # Safety decision overrides heading.
-                raw_response = f"ACTION={safety_result}"
-                prompt = safety_prompt
+            XLogger.log("L2", f"GPT tactical result: {result}")
+            raw_response = f"ACTION={result}"
 
         parsed_action = parse_llm_response(raw_response)
 
@@ -175,13 +125,10 @@ Return only the action.
             perception_state,
         )
 
-        XLogger.log(
-            "L2",
-            f"Validated action: {validated_action.value}"
-        )
+        XLogger.log("L2", f"Validated action: {validated_action.value}")
 
         return validated_action, raw_response, prompt
-        
+
     def decide_action(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
         XLogger.log("L2", "Decide_action...")
         if not self.llm_enabled:
