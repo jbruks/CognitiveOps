@@ -8,6 +8,9 @@ import os
 from rover_interfaces import PerceptionState
 from vision_nn import VisionNN
 
+# Reversible experiment: keep VisionNN implementation, bypass it in the active path.
+USE_VISION_NN = False
+
 from lite_world_model import WorldBuilder
 from lite_world_model import WorldModel
 
@@ -92,7 +95,7 @@ class PerceptionModule:
         self.mode = mode
         self.max_output_tokens = max_output_tokens
         self.worldbuilder = WorldBuilder()
-        self.vision_nn = VisionNN()
+        self.vision_nn = VisionNN() if USE_VISION_NN else None
 
         # --- GPS SETUP ---
         # Perception only reads GPS state. It does not interpret mission, target,
@@ -139,6 +142,7 @@ class PerceptionModule:
             
             
             
+        self.llm_client = None
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
             self.llm_client = OpenAI(api_key=api_key)
@@ -300,7 +304,7 @@ class PerceptionModule:
         
         frame = cv2.resize(frame, (320, 240))
 
-        vision_nn_result = self.vision_nn.analyze(frame)
+        vision_nn_result = self.vision_nn.analyze(frame) if USE_VISION_NN else {}
         
         ##############
         
@@ -489,11 +493,23 @@ class PerceptionModule:
                 gps_state=gps_state,
             )
 
-        # 🔴 fallback si no hay LLM
+        # GPT-only experiment: missing credentials/network must not select classic vision.
         if self.llm_client is None:
-            state = self._observe_camera(frame)
+            state = PerceptionState(
+                obstacle_ahead=True,
+                free_direction="none",
+                corridor_visible=False,
+                summary="GPT unavailable: OPENAI_API_KEY not configured",
+                confidence=0.0,
+                regions=[
+                    {"name": name, "traversable": False}
+                    for name in ("left", "front", "right")
+                ],
+            )
+            world = self.worldbuilder.update(rover_state=None, perception_state=state)
             return PerceptionResult(
                 perception_state=state,
+                world_model=world,
                 image_bytes=image_bytes,
                 gps_state=gps_state,
             )
@@ -501,87 +517,36 @@ class PerceptionModule:
         # 🧠 LLM percepción
 
         perception_prompt = """
-You are the visual perception system of an Axial SCX10 II
-4x4 rock crawler, approximately 0.30 m wide, with standard
-axles and approximately 0.07 m minimum ground clearance.
+You are the visual perception system of an Axial SCX10 II 4x4 rover,
+0.30 m wide, with approximately 0.07 m minimum ground clearance.
 
-This rover is designed to traverse gravel, loose dirt,
-small stones, grass, and moderately uneven terrain.
+For immediate local navigation, assess three rover-relative corridors:
+LEFT, FRONT, RIGHT. Each corridor is a possible path for the full rover,
+not merely a patch of drivable ground. A corridor is passable only when
+there is clearance for the rover's entire 0.30 m width without colliding
+with a visible rigid obstacle in its immediate path.
 
-Camera perspective can make small stones near the camera
-appear much larger than they really are.
+The rover can traverse gravel, dirt, grass, scattered small stones,
+flexible weeds and moderately uneven continuous terrain. Camera
+perspective may exaggerate the size of nearby stones. Do not block a
+corridor solely because of small loose stones, light vegetation or
+moderately uneven ground that this off-road rover can cross.
 
-Analyze the image only for immediate local navigation.
+Posts, fences, gates, walls, trunks, rigid branches, dense vegetation,
+large rocks, holes, drops and water may physically block a corridor.
+A drivable-looking surface underneath or beside a rigid barrier does
+NOT make the corridor passable. Pay particular attention to thin posts,
+horizontal fence bars, branches and barriers crossing the rover's path.
+If an obstacle intersects the immediate corridor, mark it false even
+when the ground itself is traversable. Do not treat an obstacle outside
+the corridor as blocking it; do not assume a gap is wide enough without
+visual evidence. If a possible physical collision or drop cannot be
+resolved from the image, mark that corridor false and lower confidence.
+Do not invent precise distances. Do not choose an action.
 
-Evaluate exactly these five rover-relative regions:
-left, front-left, front, front-right, right.
-
-For each region determine:
-- traversable: true or false
-- risk: low, medium, or high
-
-Report only obstacles that meaningfully restrict or endanger
-the movement of this specific rover.
-
-Gravel, scattered small stones, loose dirt, sparse grass,
-and minor surface irregularities are traversable terrain.
-Do not report them as individual obstacles.
-
-A stone is not a blocking obstacle merely because it appears
-large in the foreground of the image.
-
-Report rocks, rigid objects, dense vegetation, holes, drops,
-water, and other hazards when they could prevent safe passage.
-
-Do not assume that an uncertain obstacle is safely passable.
-
-Do NOT report sparse grass, isolated grass stems, flexible weeds,
-or light vegetation as obstacles when the rover can reasonably
-push through or pass over them.
-
-Treat such vegetation as part of the traversable terrain,
-even if it is tall enough to appear prominently in the image.
-
-Report dense or rigid vegetation as an obstacle when it forms
-a physical barrier.
-
-Also report solid obstacles, large rocks, trunks, walls, holes,
-drops, water, and other hazards that could prevent safe passage.
-
-An obstacle must represent a real restriction on rover movement,
-not merely something visible in the camera image.
-
-For each obstacle estimate:
-- region
-- distance_m
-
-The rover can traverse grass, dirt, gravel, small rocks, pavement,
-and moderately uneven continuous terrain.
-
-Dense vegetation, walls, large obstacles, drops, water, and blocked
-areas are not traversable.
-
-Do not identify or describe objects.
-Do not infer anything not visible.
-Do not choose a rover action.
-
-Return ONLY valid JSON:
-
-{
-  "regions": [
-    {"name":"left","traversable":true,"risk":"low"},
-    {"name":"front-left","traversable":true,"risk":"low"},
-    {"name":"front","traversable":true,"risk":"low"},
-    {"name":"front-right","traversable":true,"risk":"low"},
-    {"name":"right","traversable":true,"risk":"low"}
-  ],
-  "obstacles": [],
-  "confidence":0.8
-}
-
-All five regions must always be present.
-obstacles may be empty.
-confidence must be between 0.0 and 1.0.
+Return ONLY valid JSON with exactly these keys, in LEFT, FRONT, RIGHT order:
+{"passable":[true,false,true],"confidence":0.85}
+Confidence is a global number from 0 to 1.
 """
 
 
@@ -604,7 +569,7 @@ confidence must be between 0.0 and 1.0.
                     }
                 ],
                 temperature=0,
-                max_output_tokens=self.max_output_tokens,
+                max_output_tokens=min(self.max_output_tokens, 100),
             )
             
             XLogger.log("Perception", "LLM request END")
@@ -614,124 +579,43 @@ confidence must be between 0.0 and 1.0.
             XLogger.log("Perception - Observe_llm - Prompt Result:", text)
             
             data = json.loads(text)
-            
-            
-            ##########################################
-            objects = data.get("objects", [])
-            obstacles = data.get("obstacles", [])
-            regions = data.get("regions", [])
-            confidence = float(data.get("confidence", 0.0))
-            
-            # Convert compact VLM obstacles to the existing internal object format
-            objects = [
-                {
-                    "type": "obstacle",
-                    "position": {
-                        "region": obstacle.get("region", "unknown")
-                    },
-                    "distance_m": obstacle.get("distance_m"),
-                    "traversable": False,
-                }
-                for obstacle in obstacles
-            ]
+            if not isinstance(data, dict) or set(data) != {"passable", "confidence"}:
+                raise ValueError("Invalid V3.2 fields")
+            passable = data["passable"]
+            if (not isinstance(passable, list) or len(passable) != 3
+                    or any(type(v) is not bool for v in passable)):
+                raise ValueError("V3.2 passable must contain 3 booleans")
+            confidence = data["confidence"]
+            if (type(confidence) not in (int, float)
+                    or not 0.0 <= confidence <= 1.0):
+                raise ValueError("Invalid V3.2 confidence")
 
-            regions_by_name = {
-                region.get("name"): region
-                for region in regions
-            }
-
-            front = regions_by_name.get("front", {})
-            front_left = regions_by_name.get("front-left", {})
-            front_right = regions_by_name.get("front-right", {})
-            left = regions_by_name.get("left", {})
-            right = regions_by_name.get("right", {})
-
-            # Visual traversability reported by the VLM
-            front_visual = bool(front.get("traversable", False))
-
-            left_visual = bool(
-                front_left.get("traversable", False)
-                or left.get("traversable", False)
-            )
-
-            right_visual = bool(
-                front_right.get("traversable", False)
-                or right.get("traversable", False)
-            )
-
-
-            # Nearby obstacles block the corresponding movement corridor
-            MIN_CLEARANCE_M = 1
-
-            blocked_regions = set()
-
-            for obstacle in obstacles:
-                distance = obstacle.get("distance_m")
-                region = obstacle.get("region")
-
-                if (
-                    distance is not None
-                    and region is not None
-                    and distance <= MIN_CLEARANCE_M
-                ):
-                    blocked_regions.add(region)
-
-
-            # Clearance for each possible movement direction
-            front_clear = not any(
-                region in blocked_regions
-                for region in ("front-left", "front", "front-right")
-            )
-
-            left_clear = not any(
-                region in blocked_regions
-                for region in ("left", "front-left")
-            )
-
-            right_clear = not any(
-                region in blocked_regions
-                for region in ("front-right", "right")
-            )
-
-
-            # Final traversability = visual perception + geometric clearance
-            front_traversable = front_visual and front_clear
-            left_traversable = left_visual and left_clear
-            right_traversable = right_visual and right_clear
-
-            obstacle_ahead = not front_traversable
-
-            if front_traversable:
+            left_clear, front_clear, right_clear = passable
+            if front_clear:
                 free_direction = "center"
-            elif left_traversable:
+            elif left_clear:
                 free_direction = "left"
-            elif right_traversable:
+            elif right_clear:
                 free_direction = "right"
             else:
                 free_direction = "none"
 
+            # Preserve the legacy PerceptionState contract consumed by L2/world model.
+            regions = [
+                {"name": name, "traversable": clear}
+                for name, clear in zip(("left", "front", "right"), passable)
+            ]
             state = PerceptionState(
-                obstacle_ahead=obstacle_ahead,
+                obstacle_ahead=not front_clear,
                 free_direction=free_direction,
-                corridor_visible=front_traversable,
-                summary=str(data.get("summary", "")),
-                #confidence=float(data.get("overall_confidence", 0.0)),
-                confidence=confidence,
-                objects=objects,
+                corridor_visible=front_clear,
+                summary=f"GPT V3.2 passable L/F/R={passable}",
+                confidence=float(confidence),
+                objects=[],
                 regions=regions,
-                perception_prompt_result=response.output_text.strip(),
+                perception_prompt_result=text,
             )
-            ##########################################
-            
 
-            #state = PerceptionState(
-            #    obstacle_ahead=bool(data.get("obstacle_ahead", False)),
-            #    free_direction=str(data.get("free_direction", "none")),
-            #    corridor_visible=bool(data.get("corridor_visible", False)),
-            #    summary=str(data.get("summary", "")),
-            #    confidence=float(data.get("confidence", 0.0)),
-            #)
-            
             world = self.worldbuilder.update(rover_state=None, perception_state=state)
             
             return PerceptionResult(
@@ -741,18 +625,26 @@ confidence must be between 0.0 and 1.0.
                 gps_state=gps_state)
 
         except Exception as exc:
-            XLogger.log("Perception", "After ERROR" + f"[PERCEPTION LLM ERROR] {exc}")
-            # fallback a visión clásica
-            state = self._observe_camera()
+            XLogger.log("Perception", f"[PERCEPTION GPT ERROR] {exc}")
+            # Fail closed: never substitute unvalidated geometric guesses for GPT.
+            state = PerceptionState(
+                obstacle_ahead=True,
+                free_direction="none",
+                corridor_visible=False,
+                summary=f"GPT unavailable or invalid: {exc}",
+                confidence=0.0,
+                regions=[
+                    {"name": name, "traversable": False}
+                    for name in ("left", "front", "right")
+                ],
+            )
             world = self.worldbuilder.update(rover_state=None, perception_state=state)
-            
             return PerceptionResult(
                 perception_state=state,
                 world_model=world,
                 image_bytes=image_bytes,
-                gps_state=gps_state
+                gps_state=gps_state,
             )
-                        
 
 
     def close(self):
