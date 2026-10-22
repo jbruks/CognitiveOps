@@ -1,0 +1,25 @@
+{
+  "fotografias_comparadas": 177,
+  "original": {
+    "n": 177,
+    "media_s": 2.305,
+    "mediana_s": 2.254,
+    "p95_s": 2.815,
+    "max_s": 3.834
+  },
+  "v3": {
+    "n": 177,
+    "media_s": 1.398,
+    "mediana_s": 1.33,
+    "p95_s": 1.748,
+    "max_s": 4.91
+  },
+  "tokens_v0_entrada": 119829,
+  "tokens_v3_entrada": 51330,
+  "tokens_v0_salida": 19503,
+  "tokens_v3_salida": 3186,
+  "fotos_discrepantes": 86,
+  "sectores_que_v3_libera": 44,
+  "sectores_que_v3_bloquea": 100,
+  "aviso": "V0 es referencia, no verdad de terreno; las diferencias no determinan seguridad."
+}

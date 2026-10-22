@@ -1,0 +1,1239 @@
+[
+  {
+    "foto": "0001.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0002.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0003.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0004.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0005.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0006.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0007.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0008.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0009.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0010.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0011.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0012.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0013.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0014.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0015.jpg",
+    "regiones_distintas": [
+      "front-left",
+      "front",
+      "front-right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0016.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0017.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0018.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0019.jpg",
+    "regiones_distintas": [
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0020.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0021.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0022.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0023.jpg",
+    "regiones_distintas": [
+      "front-left",
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 4
+  },
+  {
+    "foto": "0024.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0025.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0026.jpg",
+    "regiones_distintas": [
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0027.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0028.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0029.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0030.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0031.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0032.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0033.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0034.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0035.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0036.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0037.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0038.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0039.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0040.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0041.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0042.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0043.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0044.jpg",
+    "regiones_distintas": [
+      "front-right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0045.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0046.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0047.jpg",
+    "regiones_distintas": [
+      "left"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0048.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0049.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0050.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0051.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0052.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0053.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0054.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0055.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0056.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0057.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0058.jpg",
+    "regiones_distintas": [
+      "front-right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0059.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0060.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0061.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0062.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0063.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0064.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0065.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0066.jpg",
+    "regiones_distintas": [
+      "left"
+    ],
+    "num_obstaculos_original": 5,
+    "num_obstaculos_compacto": 4
+  },
+  {
+    "foto": "0067.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0068.jpg",
+    "regiones_distintas": [
+      "front-left"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 4
+  },
+  {
+    "foto": "0069.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0070.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0071.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0072.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0073.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0074.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0075.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0076.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0077.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0078.jpg",
+    "regiones_distintas": [
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0079.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0080.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0081.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0082.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0083.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0084.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0085.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0086.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0087.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0088.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0089.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0090.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0091.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0092.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0093.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0094.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0095.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0096.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0097.jpg",
+    "regiones_distintas": [
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0098.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0099.jpg",
+    "regiones_distintas": [
+      "front-left",
+      "front-right"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0100.jpg",
+    "regiones_distintas": [
+      "front",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0101.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0102.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0103.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0104.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0105.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0106.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0107.jpg",
+    "regiones_distintas": [
+      "front",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0108.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0109.jpg",
+    "regiones_distintas": [
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0110.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0111.jpg",
+    "regiones_distintas": [
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 1
+  },
+  {
+    "foto": "0112.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0113.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0114.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0115.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0116.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0117.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0118.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0119.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0120.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0121.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0122.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0123.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0124.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0125.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0126.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0127.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0128.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0129.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0130.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0131.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0132.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0133.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0134.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0135.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0136.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0137.jpg",
+    "regiones_distintas": [
+      "front-left",
+      "front",
+      "front-right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0138.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0139.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0140.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0141.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0142.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0143.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0144.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0145.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0146.jpg",
+    "regiones_distintas": [
+      "left"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0147.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0148.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0149.jpg",
+    "regiones_distintas": [
+      "front",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0150.jpg",
+    "regiones_distintas": [
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 5
+  },
+  {
+    "foto": "0151.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0152.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 4,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0153.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-left",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 5
+  },
+  {
+    "foto": "0154.jpg",
+    "regiones_distintas": [
+      "right"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0155.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-left",
+      "right"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0156.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-left",
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0157.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0158.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 5
+  },
+  {
+    "foto": "0159.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-left",
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0160.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-left",
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 5,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0161.jpg",
+    "regiones_distintas": [
+      "front-left"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0162.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0163.jpg",
+    "regiones_distintas": [
+      "left",
+      "front-left",
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0164.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0165.jpg",
+    "regiones_distintas": [
+      "front-left",
+      "front",
+      "front-right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0166.jpg",
+    "regiones_distintas": [
+      "front",
+      "front-right"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0167.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0168.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0169.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0170.jpg",
+    "regiones_distintas": [
+      "left",
+      "front",
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 1,
+    "num_obstaculos_compacto": 5
+  },
+  {
+    "foto": "0171.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 5,
+    "num_obstaculos_compacto": 5
+  },
+  {
+    "foto": "0172.jpg",
+    "regiones_distintas": [
+      "front-left"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0173.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  },
+  {
+    "foto": "0174.jpg",
+    "regiones_distintas": [],
+    "num_obstaculos_original": 5,
+    "num_obstaculos_compacto": 5
+  },
+  {
+    "foto": "0175.jpg",
+    "regiones_distintas": [
+      "front"
+    ],
+    "num_obstaculos_original": 0,
+    "num_obstaculos_compacto": 0
+  },
+  {
+    "foto": "0176.jpg",
+    "regiones_distintas": [
+      "front-right",
+      "right"
+    ],
+    "num_obstaculos_original": 3,
+    "num_obstaculos_compacto": 3
+  },
+  {
+    "foto": "0177.jpg",
+    "regiones_distintas": [
+      "front-left",
+      "front"
+    ],
+    "num_obstaculos_original": 2,
+    "num_obstaculos_compacto": 2
+  }
+]

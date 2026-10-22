@@ -1,0 +1,20 @@
+{
+  "original": {
+    "n": 177,
+    "validos": 177,
+    "latencia_media_s": 2.305,
+    "latencia_mediana_s": 2.254,
+    "latencia_p95_s": 2.815,
+    "tokens_entrada_total": 119829,
+    "tokens_salida_total": 19503
+  },
+  "compacto": {
+    "n": 177,
+    "validos": 177,
+    "latencia_media_s": 2.528,
+    "latencia_mediana_s": 2.324,
+    "latencia_p95_s": 2.965,
+    "tokens_entrada_total": 77349,
+    "tokens_salida_total": 18253
+  }
+}

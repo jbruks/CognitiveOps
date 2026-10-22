@@ -1,0 +1,9 @@
+{
+  "model": "gpt-5.4",
+  "prompt": "You are the visual perception system of an Axial SCX10 II 4x4 rover,\n0.30 m wide, with approximately 0.07 m minimum ground clearance.\n\nFor immediate local navigation, assess three rover-relative corridors:\nLEFT, FRONT, RIGHT. Each corridor is a possible path for the full rover,\nnot merely a patch of drivable ground. A corridor is passable only when\nthere is clearance for the rover's entire 0.30 m width without colliding\nwith a visible rigid obstacle in its immediate path.\n\nThe rover can traverse gravel, dirt, grass, scattered small stones,\nflexible weeds and moderately uneven continuous terrain. Camera\nperspective may exaggerate the size of nearby stones. Do not block a\ncorridor solely because of small loose stones, light vegetation or\nmoderately uneven ground that this off-road rover can cross.\n\nPosts, fences, gates, walls, trunks, rigid branches, dense vegetation,\nlarge rocks, holes, drops and water may physically block a corridor.\nA drivable-looking surface underneath or beside a rigid barrier does\nNOT make the corridor passable. Pay particular attention to thin posts,\nhorizontal fence bars, branches and barriers crossing the rover's path.\nIf an obstacle intersects the immediate corridor, mark it false even\nwhen the ground itself is traversable. Do not treat an obstacle outside\nthe corridor as blocking it; do not assume a gap is wide enough without\nvisual evidence. If a possible physical collision or drop cannot be\nresolved from the image, mark that corridor false and lower confidence.\nDo not invent precise distances. Do not choose an action.\n\nReturn ONLY valid JSON with exactly these keys, in LEFT, FRONT, RIGHT order:\n{\"passable\":[true,false,true],\"confidence\":0.85}\nConfidence is a global number from 0 to 1.",
+  "image_size": [
+    320,
+    240
+  ],
+  "max_output_tokens": 100
+}

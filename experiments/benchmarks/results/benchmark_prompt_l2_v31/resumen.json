@@ -1,0 +1,26 @@
+{
+  "fotos": 37,
+  "v0": {
+    "n": 37,
+    "media_s": 2.553,
+    "mediana_s": 2.46,
+    "p95_s": 3.071
+  },
+  "v3": {
+    "n": 37,
+    "media_s": 1.416,
+    "mediana_s": 1.336,
+    "p95_s": 2.036
+  },
+  "v31": {
+    "n": 37,
+    "media_s": 1.658,
+    "mediana_s": 1.523,
+    "p95_s": 2.157
+  },
+  "discrepancias_v31_vs_v3": 15,
+  "v31_libera_frente_central_v0": 4,
+  "v31_libera_sector_v0_and": 30,
+  "v31_bloquea_sector_v0_and": 11,
+  "nota": "V0 no es ground truth; diferencias entre 5 y 3 regiones requieren revisión visual."
+}

@@ -1,0 +1,33 @@
+{
+  "fotos": 177,
+  "v0": {
+    "n": 177,
+    "media_s": 2.305,
+    "mediana_s": 2.254,
+    "p95_s": 2.815
+  },
+  "v3": {
+    "n": 177,
+    "media_s": 1.398,
+    "mediana_s": 1.33,
+    "p95_s": 1.748
+  },
+  "v31": {
+    "n": 37,
+    "media_s": 1.658,
+    "mediana_s": 1.523,
+    "p95_s": 2.157
+  },
+  "v32": {
+    "n": 177,
+    "media_s": 1.179,
+    "mediana_s": 1.126,
+    "p95_s": 1.532
+  },
+  "discrepancias_v32_vs_v3": 51,
+  "discrepancias_v32_vs_v31": 14,
+  "v32_libera_frente_central_v0": 0,
+  "v32_libera_sector_v0_and": 35,
+  "v32_bloquea_sector_v0_and": 68,
+  "nota": "V0 no es ground truth; diferencias entre 5 y 3 regiones requieren revisión visual."
+}
