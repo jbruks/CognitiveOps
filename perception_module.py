@@ -493,11 +493,23 @@ class PerceptionModule:
                 gps_state=gps_state,
             )
 
-        # 🔴 fallback si no hay LLM
+        # GPT-only experiment: missing credentials/network must not select classic vision.
         if self.llm_client is None:
-            state = self._observe_camera(frame)
+            state = PerceptionState(
+                obstacle_ahead=True,
+                free_direction="none",
+                corridor_visible=False,
+                summary="GPT unavailable: OPENAI_API_KEY not configured",
+                confidence=0.0,
+                regions=[
+                    {"name": name, "traversable": False}
+                    for name in ("left", "front", "right")
+                ],
+            )
+            world = self.worldbuilder.update(rover_state=None, perception_state=state)
             return PerceptionResult(
                 perception_state=state,
+                world_model=world,
                 image_bytes=image_bytes,
                 gps_state=gps_state,
             )
