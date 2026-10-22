@@ -44,17 +44,17 @@ class L2TacticalPlanner:
         # 🔢 contador global
         #self.sim_counter = 0
 
-    def _build_qwen_safety_prompt(self, perception_state) -> str:
+    def _build_gpt_safety_prompt(self, perception_state) -> str:
         return f"""
 You are a rover safety controller.
 
 Choose exactly ONE result from:
-SAFE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT, MOVE_BACKWARD
+SAFE_FORWARD, FORWARD_LEFT, FORWARD_RIGHT, HOLD
 
 Rules:
 - If obstacle_ahead == true and free_direction == left -> FORWARD_LEFT
 - If obstacle_ahead == true and free_direction == right -> FORWARD_RIGHT
-- If obstacle_ahead == true and free_direction is anything else -> MOVE_BACKWARD
+- If obstacle_ahead == true and free_direction is anything else -> HOLD
 - Otherwise -> SAFE_FORWARD
 
 Input:
@@ -64,7 +64,7 @@ free_direction={perception_state.free_direction}
 Return only the result.
 """.strip()
 
-    def _build_qwen_heading_prompt(self, l3_task) -> str:
+    def _build_gpt_heading_prompt(self, l3_task) -> str:
         heading_error = l3_task.get("heading_error_deg")
 
         return f"""
@@ -92,25 +92,25 @@ Return only the action.
         return token.splitlines()[0].strip()
 
     def decide_action_with_llm(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
-        XLogger.log("L2", "Decide action with split Qwen L2 ...")
+        XLogger.log("L2", "Decide action with split GPT L2 ...")
 
         if perception_state is None:
             raise RuntimeError("Perception state unavailable")
 
         # LOW perception confidence:
-        # deterministic conservative action, no Qwen call.
+        # deterministic conservative action, no GPT call.
         if perception_state.confidence <= 0.3:
-            raw_response = "ACTION=MOVE_BACKWARD"
+            raw_response = "ACTION=HOLD"
             prompt = "DETERMINISTIC_LOW_CONFIDENCE"
 
             XLogger.log(
                 "L2",
-                "LOW confidence -> deterministic MOVE_BACKWARD"
+                "LOW confidence -> deterministic HOLD"
             )
 
         else:
-            # Qwen only handles the safety / obstacle microtask.
-            safety_prompt = self._build_qwen_safety_prompt(perception_state)
+            # GPT only handles the safety / obstacle microtask.
+            safety_prompt = self._build_gpt_safety_prompt(perception_state)
             safety_raw = self.llm.decide(safety_prompt)
             safety_result = self._normalize_llm_token(safety_raw)
 
@@ -118,17 +118,17 @@ Return only the action.
                 "SAFE_FORWARD",
                 "FORWARD_LEFT",
                 "FORWARD_RIGHT",
-                "MOVE_BACKWARD",
+                "HOLD",
             }
 
             if safety_result not in allowed_safety_results:
                 raise ValueError(
-                    f"Invalid Qwen safety result: {safety_result!r}"
+                    f"Invalid GPT safety result: {safety_result!r}"
                 )
 
             XLogger.log(
                 "L2",
-                f"Qwen safety result: {safety_result}"
+                f"GPT safety result: {safety_result}"
             )
 
             if safety_result == "SAFE_FORWARD":
@@ -155,7 +155,7 @@ Return only the action.
                 raw_response = f"ACTION={heading_result}"
 
                 prompt = (
-                    "=== QWEN SAFETY PROMPT ===\n"
+                    "=== GPT SAFETY PROMPT ===\n"
                     f"{safety_prompt}\n\n"
                     "=== DETERMINISTIC HEADING ===\n"
                     f"heading_error_deg={heading_error}\n"
@@ -185,8 +185,7 @@ Return only the action.
     def decide_action(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
         XLogger.log("L2", "Decide_action...")
         if not self.llm_enabled:
-            fallback_action = self.fallback.decide_action(rover_state, perception_state)
-            return fallback_action, "FALLBACK_ONLY", None, "fallback"
+            return TacticalAction.HOLD, "GPT_DISABLED_HOLD", None, "safety_hold"
         try:
 
             action, raw_response, prompt = self.decide_action_with_llm(
@@ -205,8 +204,8 @@ Return only the action.
             #print(f"[GUIDANCE] LLM decision failed: {exc}")
             XLogger.log("L2", f"[GUIDANCE] LLM decision failed: {exc}")
             if self.fallback_enabled:
-                fallback_action = self.fallback.decide_action(rover_state, perception_state)
-                return fallback_action, f"FALLBACK_AFTER_ERROR: {exc}", None, "fallback"
+                # GPT-only experiment: never switch to heuristic motion after API errors.
+                return TacticalAction.HOLD, f"GPT_ERROR_HOLD: {exc}", None, "safety_hold"
 
             raise
 
@@ -323,6 +322,34 @@ Return only the action.
                 "[SAFETY] Perception unavailable -> STOP"
             )
             return TacticalAction.STOP
+
+        # Three-sector GPT V3.2 safety: stop manoeuvres that contradict perception.
+        # Never authorize an automatic reverse from monocular forward vision.
+        if action == TacticalAction.MOVE_BACKWARD:
+            return TacticalAction.HOLD
+
+        if perception_state.confidence <= 0.3:
+            return TacticalAction.HOLD
+
+        directions = {}
+        for region in (perception_state.regions or []):
+            if isinstance(region, dict) and region.get("name") in ("left", "front", "right"):
+                if type(region.get("traversable")) is bool:
+                    directions[region["name"]] = region["traversable"]
+
+        # Fail closed if the new perception contract is incomplete.
+        if set(directions) != {"left", "front", "right"}:
+            XLogger.log("L2", "[SAFETY] Missing GPT corridor data -> HOLD")
+            return TacticalAction.HOLD
+
+        permitted = {
+            TacticalAction.MOVE_FORWARD: directions["front"],
+            TacticalAction.FORWARD_LEFT: directions["left"],
+            TacticalAction.FORWARD_RIGHT: directions["right"],
+        }
+        if action in permitted and not permitted[action]:
+            XLogger.log("L2", f"[SAFETY] GPT corridor veto -> {action.value}")
+            return TacticalAction.HOLD
 
         # Only moving/steering actions need this first safety check.
         if action not in (
