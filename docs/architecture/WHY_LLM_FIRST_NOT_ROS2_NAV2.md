@@ -103,23 +103,85 @@ The hypothesis is that a reusable reasoning architecture could reduce some domai
 
 This remains a **hypothesis to evaluate**, not a demonstrated reduction in total engineering cost. Hardware, safety, connectivity, validation, and domain-specific sensing still matter.
 
-## 6. What our current field experiments demonstrate
+## 6. Evidence from demos and field experiments
 
-ProjectRover has already exercised an end-to-end physical loop involving camera capture, GPT-based corridor assessment, GPS/heading guidance, GPT tactical action selection, and actuator commands.
+CognitiveOps has evolved through **simulated experiments, incremental physical-robot demos, and instrumented outdoor tests**. The evidence is not limited to the October 22 garden run.
 
-In the **2026-10-22 garden test**, recorded observations included:
+### 6.1 Development demonstrations: camera, multimodal decisions, hierarchy, and GPS
 
-- A main session of approximately **17 minutes and 15 seconds**.
+The repository's [main README](../../README.md#development-evolution) documents a sequence of experimental *Lunar Rover* revisions. These are **recorded implementation milestones**, rather than independently benchmarked navigation-success results:
+
+| Recorded milestone | What was demonstrated or introduced |
+|---|---|
+| **LR014–LR015** | Real OpenCV camera perception, followed by multimodal image + LLM tactical reasoning |
+| **LR016–LR017** | Reverse driving and autonomous execution-loop diagnostics |
+| **LR018–LR021** | L3/L4 hierarchical planning, cognitive memory, recovery/task experiments, and per-run image/execution traces |
+| **LR027–LR037** | Layered L1/L2 integration, Lite World Model, and broader instrumentation |
+| **LR042–LR045** | Shared perception/cognitive context, GPS integrated into perception, and GPS target handoff between mission layers |
+
+The [README's physical test launcher section](../../README.md#physical-test-launchers) also describes short (`i5`) and longer (`i50`) real-rover iteration tests. Together, these stages show an experimental progression from camera input to an LLM-influenced physical control loop and mission context.
+
+**Evidence scope:** The README documents capabilities and revision history; it does not establish collision-free mileage or benchmark superiority over conventional navigation.
+
+### 6.2 October 21, 2026 — Outdoor runs with local Qwen L2
+
+The repository contains a dedicated, quantitative report: **[Field test — Local Qwen L2 — 2026-10-21](https://github.com/jbruks/CognitiveOps/blob/main/FIELD_TEST_20261021_QWEN_L2.md)**.
+
+The report covers four autonomous runs using **Qwen 2.5 7B via Ollama**, connected through a persistent worker on a ZBook, and a fast local VisionNN perception stage. Motor commands were active.
+
+| Reported measurement | Result |
+|---|---:|
+| Recorded cycles/images | **318** |
+| Tactical decisions | **297** |
+| Forward / forward-left / forward-right / backward | **118 / 69 / 47 / 63** |
+| VisionNN mean / median | **0.313 s / 0.311 s** |
+| VisionNN observed range | **0.298–0.425 s** |
+| GPS/navigation HOLD cycles | **20** |
+
+The report documents several substantive findings:
+
+- **Field conditions mattered:** low frontal sunlight, shadows, gravel, vegetation, and nearby objects complicated perception.
+- **GPS loss was handled conservatively:** stale phone position/heading resulted in HOLD/STOP, rather than unrestricted movement.
+- **Backward action was not always an LLM decision:** 48 of 63 backward actions coincided with LOW perception confidence and were forced by the then-current deterministic policy.
+- **A useful negative result:** a Qwen heading micro-task agreed with a numeric ±8° rule in **189/217 cases (87.1%)**. Heading thresholding was subsequently moved to deterministic code.
+
+**Architectural relevance:** This test illustrates why LLM-first does not mean using an LLM for every operation. Semantic obstacle reasoning is a research target; simple numeric heading thresholds may be better implemented deterministically.
+
+**Configuration caution:** This was a **different experimental stack** from the following day's GPT-based garden run. Qwen/VisionNN inference figures must not be compared directly with GPT API latency as though they measured identical tasks.
+
+### 6.3 October 22, 2026 — Physical garden test with GPT tactical navigation
+
+A subsequent garden test exercised camera capture, **GPT-based LEFT / FRONT / RIGHT corridor assessment**, GPS/heading guidance, GPT tactical action selection, and physical rover movements.
+
+Recorded observations from the analysed session included:
+
+- Approximately **17 minutes and 15 seconds** of activity.
 - **171 perception cycles** and **146 movement decisions**.
-- Mean measured GPT latency of approximately **1.31 seconds for perception** and **1.16 seconds for tactical L2**.
-- Real movements involving forward, left, right, and backward actions.
-- Operator interventions, including manually lifting and repositioning the rover.
-- Navigation tested over **home Wi-Fi with a fiber connection**, **not field 4G**.
-- No reliable ground-truth distance traveled: phone GPS was noisy, with a reported median horizontal accuracy around **11 meters**.
+- Mean GPT response times of approximately **1.31 s for perception** and **1.16 s for L2 tactical decisions**.
+- Executed forward, left, right, and backward maneuvers.
+- Human interventions, including lifting and repositioning the rover.
+- **Home Wi-Fi connected through fiber**, *not* field 4G; cloud-model latency under cellular conditions remains untested by this run.
+- No reliable ground-truth distance travelled: phone GPS was noisy, with a reported median horizontal accuracy of approximately **11 m**.
 
-These results support the feasibility of **an LLM participating in a real rover control loop** under supervised conditions. They do **not** prove autonomous mission completion, superior navigation performance relative to Nav2, or production safety.
+**Evidence scope:** This supports feasibility of GPT participating in a sustained supervised physical control loop. It does **not** establish independent mission completion, verified obstacle-avoidance accuracy, reliable odometric distance, or safety equivalence to Nav2.
 
-The field logs and images are evidence, not a substitute for controlled comparative experiments.
+### 6.4 What the broader experimental history tells us
+
+Taken together, these records support **an engineering and research trajectory**, not a claim that one model or architecture has already won:
+
+1. **System integration:** camera, perception, hierarchical mission context, guidance, LLM action selection, and RA4M1 commands were progressively connected to a physical platform.
+2. **Model/backend flexibility:** tests used both local Qwen-based reasoning and cloud GPT, exposing different deployment and connectivity trade-offs.
+3. **Measured rather than anecdotal behavior:** at least two field-test records report cycle counts, decisions, and inference timing, including failure cases.
+4. **Selective determinism:** observed errors in numeric heading decisions motivated moving that subproblem out of the LLM path, while keeping the cognition experiment centered on perception and tactical behavior.
+5. **Open research gaps:** localization, temporal reasoning, avoiding repeated recoveries, robustness to lighting, and cellular-network performance remain unresolved.
+
+This is precisely why a **Nav2-first replacement would answer a different question**: we want to measure and improve the LLM's contribution to physical navigation, rather than conceal it behind an established autonomous planner.
+
+**Primary repository evidence**
+
+- [CognitiveOps README — architecture, physical launchers, and development evolution](../../README.md)
+- [Field test: Local Qwen L2, October 21, 2026](https://github.com/jbruks/CognitiveOps/blob/main/FIELD_TEST_20261021_QWEN_L2.md)
+- October 22, 2026 garden-test analysis and operator-provided log; quantitative values above are from that session, not from the earlier Qwen report.
 
 ## 7. Known limits and why they matter
 
