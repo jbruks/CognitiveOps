@@ -14,7 +14,7 @@ from decision_validator import (
 from fallback_guidance import FallbackGuidance
 from llm_decision import TacticalLLMDecisionMaker
 from rover_interfaces import TacticalAction
-from perception_module import PerceptionResult
+from perception_module import PerceptionResult, fuse_front_sensor
 
 from utils.xlogger import XLogger
 
@@ -170,6 +170,22 @@ MOVE_BACKWARD
         #with open(filepath, "wb") as f:
         #    f.write(image_bytes)
         #XLogger.log("L2", f"step [SIM {sim_id:04d}] Image saved → {filepath}")
+        # Front distance is read independently of camera inference.
+        # On sensor/serial failure: no tactical movement or GPT fallback.
+        try:
+            sensor = self.rover_client.get_front_sensor_state()
+            result = fuse_front_sensor(result, sensor)
+            XLogger.log("L2", f"Front ultrasonic: {sensor}")
+        except (OSError, RuntimeError, TimeoutError, ValueError, AttributeError) as exc:
+            XLogger.log("L2", f"[SAFETY] Front telemetry unavailable: {exc}")
+            self.rover_client.execute_tactical_action(TacticalAction.HOLD)
+            return TacticalAction.HOLD, f"FRONT_SENSOR_ERROR: {exc}", None, "safety_hold"
+
+        if sensor["front_blocked"] or not sensor["front_distance_valid"]:
+            XLogger.log("L2", "[SAFETY] Front blocked -> HOLD; no automatic reverse")
+            self.rover_client.execute_tactical_action(TacticalAction.HOLD)
+            return TacticalAction.HOLD, "FRONT_SENSOR_BLOCKED", None, "safety_hold"
+
         semantic_summary = (
             result.world_model.semantic_summary()
             if result.world_model is not None
