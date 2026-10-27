@@ -10,6 +10,10 @@ from lite_world_model import WorldModel
 from utils.xlogger import XLogger
 
 import math
+import base64
+import json
+
+from config import OPENAI_MODEL
 
 from l3_models import GuidanceTask, GuidanceTaskType
 from l4_models import MissionTask
@@ -42,6 +46,9 @@ class L3TaskPlanner:
         # es consecuencia de esta acción.
         self._last_commanded_action = None
         self._last_valid_heading = None
+        self._blocked_cycles = 0
+        self._block_escalated = False
+        self._block_advice = None
 
     #def step(self, rover_state, result, mission):
     def step(self, rover_state, result, mission):
@@ -146,9 +153,75 @@ class L3TaskPlanner:
             action,
         )
 
-        self._last_commanded_action = action
+        # One GPT advisory escalation per persistent blockage; never execute its proposal.
+        if action == TacticalAction.HOLD and decision_info in (
+            "FRONT_SENSOR_BLOCKED", "VISION_FRONT_BLOCKED", "HEADING_CORRIDOR_BLOCKED"
+        ):
+            self._blocked_cycles += 1
+            if self._blocked_cycles >= 3 and not self._block_escalated:
+                self._block_escalated = True
+                self._block_advice = self._request_blockage_advice(
+                    result, navigation_state, guidance_task, decision_info
+                )
+                XLogger.log("L3", f"BLOCKAGE_ADVICE: {self._block_advice}")
+        elif action not in (TacticalAction.HOLD, TacticalAction.STOP):
+            self._blocked_cycles = 0
+            self._block_escalated = False
+            self._block_advice = None
 
+        self._last_commanded_action = action
         return action
+
+    def _request_blockage_advice(self, result, navigation, guidance, reason):
+        """GPT advises on persistent block; no automatic motion or reverse."""
+        client = getattr(self.perception, "llm_client", None)
+        if client is None or result.image_bytes is None:
+            return {"decision": "HOLD", "reason": "GPT or camera unavailable"}
+        context = {
+            "reason": reason,
+            "front_sensor": result.front_sensor,
+            "vision_confidence": result.perception_state.confidence,
+            "vision_regions": result.perception_state.regions,
+            "gps_lat": navigation.latitude,
+            "gps_lon": navigation.longitude,
+            "heading_deg": navigation.heading_deg,
+            "target_bearing_deg": guidance.desired_heading_deg,
+            "heading_error_deg": guidance.heading_error_deg,
+            "distance_remaining_m": guidance.distance_remaining_m,
+        }
+        prompt = (
+            "You are L3, a rover recovery advisor. The rover is stopped. "
+            "Analyze the image and sensors. Propose a strategy, not motor commands. "
+            "No rear sensor: never propose automatic reversing. Never override "
+            "the frontal ultrasonic veto. Choose HOLD, INSPECT, or DETOUR_SUGGESTION. "
+            "A suggested detour requires independent clearance validation. "
+            "Return only JSON with fields decision and reason.\n"
+            + json.dumps(context, default=str)
+        )
+        try:
+            response = client.responses.create(
+                model=OPENAI_MODEL,
+                input=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": prompt},
+                        {"type": "input_image", "image_url":
+                            "data:image/jpeg;base64,"
+                            + base64.b64encode(result.image_bytes).decode("ascii")},
+                    ],
+                }],
+                max_output_tokens=220,
+            )
+            data = json.loads(response.output_text.strip())
+            if (not isinstance(data, dict)
+                    or data.get("decision") not in ("HOLD", "INSPECT", "DETOUR_SUGGESTION")
+                    or not isinstance(data.get("reason"), str)):
+                raise ValueError("Invalid L3 strategy response")
+            return {"decision": data["decision"], "reason": data["reason"]}
+        except Exception as exc:
+            XLogger.log("L3", f"Blockage GPT request failed: {exc}")
+            return {"decision": "HOLD", "reason": "GPT unavailable"}
+
 
     def build_navigation_state(
         self,
