@@ -50,6 +50,12 @@ int currentThrottleUs = PWM_CENTER;
 String currentMode = "STANDBY";
 String lastAction = "NONE";
 
+// Sticky diagnostic: survives later FAILSAFE, STOP or DISARM updates.
+// Only records a front stop while a forward timed action was active.
+unsigned long frontStopCount = 0;
+unsigned long lastFrontStopMs = 0;
+float lastFrontStopDistanceCm = -1.0f;
+
 int targetSteerUs = PWM_CENTER_STEER;
 int targetThrottleUs = PWM_CENTER;
 
@@ -131,6 +137,14 @@ void updateRamp() {
 
 // Bypass ramp and cancel ongoing forward timed action.
 void stopForFrontObstacle() {
+  if (actionActive && (targetThrottleUs > PWM_CENTER ||
+                       currentThrottleUs > PWM_CENTER)) {
+    frontStopCount++;
+    lastFrontStopMs = millis();
+    lastFrontStopDistanceCm = frontDistanceCm;
+    Serial.print("EVENT FRONT_STOP distance_cm=");
+    Serial.println(lastFrontStopDistanceCm, 1);
+  }
   actionActive = false;
   targetThrottleUs = PWM_CENTER;
   currentThrottleUs = PWM_CENTER;
@@ -324,7 +338,13 @@ void handleCommand(const String& cmdRaw) {
     Serial.print(" front_distance_cm=");
     Serial.print(frontDistanceCm, 1);
     Serial.print(" front_blocked=");
-    Serial.println(frontBlocked ? 1 : 0);
+    Serial.print(frontBlocked ? 1 : 0);
+    Serial.print(" front_stop_count=");
+    Serial.print(frontStopCount);
+    Serial.print(" last_front_stop_ms=");
+    Serial.print(lastFrontStopMs);
+    Serial.print(" last_front_stop_cm=");
+    Serial.println(lastFrontStopDistanceCm, 1);
     return;
   }
 
