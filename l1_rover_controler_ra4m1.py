@@ -96,6 +96,33 @@ class L1RoverControler:
             )
         return self.state
 
+    def get_front_sensor_state(self) -> dict:
+        """Read HC-SR04 telemetry. Never treat a missing/invalid echo as clear."""
+        response = self._request(
+            "GET_DISTANCE",
+            expected_prefixes=("DISTANCE_CM=",),
+            required=True,
+        )
+        fields = self._parse_state_line("DISTANCE " + response)
+        try:
+            distance_cm = float(fields["DISTANCE_CM"])
+            blocked_raw = fields["BLOCKED"]
+            if blocked_raw not in ("0", "1"):
+                raise ValueError("Invalid BLOCKED flag")
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError(f"Malformed HC-SR04 telemetry: {response}") from exc
+
+        valid = distance_cm > 0
+        blocked = blocked_raw == "1"
+        if not valid and not blocked:
+            raise RuntimeError("Invalid HC-SR04 echo reported as unblocked")
+
+        return {
+            "front_distance_cm": distance_cm if valid else None,
+            "front_blocked": blocked,
+            "front_distance_valid": valid,
+        }
+
     def execute_tactical_action(self, action: TacticalAction):
         #print(f"Executing tactical action via RA4M1: {action.value}")
         XLogger.log("L1", f"Executing tactical action via RA4M1: {action.value}")
