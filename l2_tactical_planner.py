@@ -131,31 +131,42 @@ MOVE_BACKWARD
         return validated_action, raw_response, prompt
 
     def decide_action(self, rover_state, perception_state, image_bytes, l3_task, gps_state):
-        XLogger.log("L2", "Decide_action...")
-        if not self.llm_enabled:
-            return TacticalAction.HOLD, "GPT_DISABLED_HOLD", None, "safety_hold"
-        try:
+        """Fast deterministic L2: VisionNN traversability + GPS heading, no LLM."""
+        if perception_state is None or perception_state.confidence <= 0.3:
+            return TacticalAction.HOLD, "VISION_UNCERTAIN", None, "python"
 
-            action, raw_response, prompt = self.decide_action_with_llm(
-                rover_state,
-                perception_state,
-                image_bytes,
-                l3_task,
-                gps_state,
-            )
+        regions = {
+            r.get("name"): r.get("traversable")
+            for r in (perception_state.regions or [])
+            if isinstance(r, dict)
+        }
+        if set(regions) != {"left", "front", "right"} or any(
+            type(regions[d]) is not bool for d in ("left", "front", "right")
+        ):
+            return TacticalAction.HOLD, "VISION_REGIONS_INCOMPLETE", None, "python"
 
+        # Never make a blind reverse or choose a side corridor autonomously.
+        if perception_state.obstacle_ahead or not regions["front"]:
+            return TacticalAction.HOLD, "VISION_FRONT_BLOCKED", None, "python"
 
+        error = l3_task.get("heading_error_deg")
+        if error is None:
+            return TacticalAction.HOLD, "HEADING_UNAVAILABLE", None, "python"
 
-            return action, raw_response, prompt, "llm"
+        if error > 8:
+            action = TacticalAction.FORWARD_RIGHT
+            corridor = "right"
+        elif error < -8:
+            action = TacticalAction.FORWARD_LEFT
+            corridor = "left"
+        else:
+            action = TacticalAction.MOVE_FORWARD
+            corridor = "front"
 
-        except (DecisionValidationError, RuntimeError, ValueError) as exc:
-            #print(f"[GUIDANCE] LLM decision failed: {exc}")
-            XLogger.log("L2", f"[GUIDANCE] LLM decision failed: {exc}")
-            if self.fallback_enabled:
-                # GPT-only experiment: never switch to heuristic motion after API errors.
-                return TacticalAction.HOLD, f"GPT_ERROR_HOLD: {exc}", None, "safety_hold"
+        if not regions[corridor]:
+            return TacticalAction.HOLD, "HEADING_CORRIDOR_BLOCKED", None, "python"
 
-            raise
+        return action, f"PYTHON_HEADING error={error}", None, "python"
 
     def step(self, rover_state, result, l3_task, observability=None):
         XLogger.log("L2", "step")
