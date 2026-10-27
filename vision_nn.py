@@ -1,28 +1,26 @@
 import subprocess
 import struct
 import json
+from pathlib import Path
 
 import cv2
 
 
 class VisionNN:
-    """
-    Lightweight remote VisionNN client.
-
-    Keeps a persistent SSH session open to the ZBook and sends
-    JPEG frames to vision_nn_worker.py.
-
-    The remote worker currently returns accepted=False, so
-    PerceptionModule will continue using the existing GPT path.
-    """
+    """Persistent local CPU VisionNN worker; JPEG/JSON framing unchanged."""
 
     def __init__(self):
+        project_root = Path(__file__).resolve().parent
+        python_bin = (
+            project_root
+            / "experiments/local_perception/.venv-offseg/bin/python"
+        )
+        if not python_bin.is_file():
+            raise FileNotFoundError(f"VisionNN environment missing: {python_bin}")
+
         self.process = subprocess.Popen(
-            [
-                "ssh",
-                "devlin@lw232451585.local",
-                "cd ~/CognitiveOps && ~/depth-env/bin/python -u vision_nn_worker.py",
-            ],
+            [str(python_bin), "-u", str(project_root / "vision_nn_worker.py")],
+            cwd=str(project_root),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=None,
@@ -35,7 +33,7 @@ class VisionNN:
             chunk = stream.read(size - len(data))
 
             if not chunk:
-                raise RuntimeError("VisionNN remote connection closed")
+                raise RuntimeError("VisionNN local worker connection closed")
 
             data += chunk
 
