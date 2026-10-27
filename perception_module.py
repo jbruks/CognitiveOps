@@ -37,6 +37,26 @@ class PerceptionResult:
     semantic_summary: str = ""
     image_bytes: bytes | None = None
     gps_state: dict | None = None
+    front_sensor: dict | None = None
+
+
+def fuse_front_sensor(result: PerceptionResult, sensor: dict) -> PerceptionResult:
+    """Augment existing vision perception without mistaking ultrasonic clearance for vision clearance."""
+    result.front_sensor = dict(sensor)
+    blocked = sensor["front_blocked"]
+    valid = sensor["front_distance_valid"]
+    if blocked or not valid:
+        state = result.perception_state
+        state.obstacle_ahead = True
+        state.corridor_visible = False
+        state.summary = (state.summary + " | FRONT_ULTRASONIC_BLOCKED").strip()
+        # Do not rewrite LEFT/RIGHT regions: a narrow sonar cone cannot assess them.
+        for region in (state.regions or []):
+            if isinstance(region, dict) and region.get("name") == "front":
+                region["traversable"] = False
+        if state.free_direction == "center":
+            state.free_direction = "none"
+    return result
 
 
 class PerceptionModule:
