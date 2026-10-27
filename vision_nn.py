@@ -1,25 +1,43 @@
 import subprocess
 import struct
 import json
+import socket
 from pathlib import Path
 
 import cv2
 
 
 class VisionNN:
-    """Persistent local CPU VisionNN worker; JPEG/JSON framing unchanged."""
+    """CPU VisionNN worker: local on ASUS, remote via SSH on Raspberry."""
 
     def __init__(self):
         project_root = Path(__file__).resolve().parent
-        python_bin = (
-            project_root
-            / "experiments/local_perception/.venv-offseg/bin/python"
-        )
-        if not python_bin.is_file():
-            raise FileNotFoundError(f"VisionNN environment missing: {python_bin}")
+        remote_host = "jbru@jbru-GL552JX.local"
+        remote_root = "/home/jbru/RoverGit"
+
+        if socket.gethostname().lower().startswith("raspberrypi"):
+            # SSH stdout carries ONLY the binary frame protocol.
+            command = [
+                "ssh", "-T", "-o", "BatchMode=yes",
+                "-o", "ConnectTimeout=5", remote_host,
+                f"cd {remote_root} && "
+                "experiments/local_perception/.venv-offseg/bin/python "
+                "-u vision_nn_worker.py",
+            ]
+        else:
+            python_bin = (
+                project_root / "experiments/local_perception/.venv-offseg/bin/python"
+            )
+            if not python_bin.is_file():
+                raise FileNotFoundError(
+                    f"VisionNN environment missing: {python_bin}"
+                )
+            command = [
+                str(python_bin), "-u", str(project_root / "vision_nn_worker.py")
+            ]
 
         self.process = subprocess.Popen(
-            [str(python_bin), "-u", str(project_root / "vision_nn_worker.py")],
+            command,
             cwd=str(project_root),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -33,7 +51,7 @@ class VisionNN:
             chunk = stream.read(size - len(data))
 
             if not chunk:
-                raise RuntimeError("VisionNN local worker connection closed")
+                raise RuntimeError("VisionNN worker connection closed")
 
             data += chunk
 
