@@ -148,8 +148,17 @@ MOVE_BACKWARD
         ):
             return TacticalAction.HOLD, "VISION_REGIONS_INCOMPLETE", None, "python"
 
-        # Never make a blind reverse or choose a side corridor autonomously.
+        # After a recovery reverse, try a newly observed side corridor.
+        # The front ultrasonic veto is still checked before this function.
         if perception_state.obstacle_ahead or not regions["front"]:
+            if self._reverse_attempted:
+                error = l3_task.get("heading_error_deg")
+                preference = ("right", "left") if error is not None and error >= 0 else ("left", "right")
+                for side in preference:
+                    if regions[side]:
+                        action = (TacticalAction.FORWARD_RIGHT if side == "right"
+                                  else TacticalAction.FORWARD_LEFT)
+                        return action, "RECOVERY_DETOUR_" + side.upper(), None, "python_recovery"
             return TacticalAction.HOLD, "VISION_FRONT_BLOCKED", None, "python"
 
         error = l3_task.get("heading_error_deg")
