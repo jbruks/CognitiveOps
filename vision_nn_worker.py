@@ -52,17 +52,11 @@ DT_ABRUPT = 2.7
 # OFFSEG
 # ============================================================
 
-OFFSEG_ROOT = Path(
-    "/home/devlin/CognitiveOps/"
-    "experiments/local_perception/OFFSEG"
-)
+# Keep model files relative to the checkout (ASUS or any other host).
+OFFSEG_ROOT = Path(__file__).resolve().parent / "experiments/local_perception/OFFSEG"
 
-OFFSEG_WEIGHT = (
-    OFFSEG_ROOT
-    / "extracted_weights"
-    / "Offseg weights"
-    / "model_final3.pth"
-)
+# Experimental ASUS weights; not assumed equivalent to the ZBook model_final3.pth.
+OFFSEG_WEIGHT = OFFSEG_ROOT / "Models/BiSeNet_RUGD/model_final.pth"
 
 sys.path.insert(
     0,
