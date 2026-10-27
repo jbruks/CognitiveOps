@@ -192,7 +192,8 @@ class L3TaskPlanner:
         prompt = (
             "You are L3, a rover recovery advisor. The rover is stopped. "
             "Analyze the image and sensors. Propose a strategy, not motor commands. "
-            "No rear sensor: never propose automatic reversing. Never override "
+            "A single automatic reverse may already have occurred as recovery; do not "
+            "suggest repeated blind reversing. Never override "
             "the frontal ultrasonic veto. Choose HOLD, INSPECT, or DETOUR_SUGGESTION. "
             "A suggested detour requires independent clearance validation. "
             "Return only JSON with fields decision and reason.\n"
