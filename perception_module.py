@@ -8,8 +8,8 @@ import os
 from rover_interfaces import PerceptionState
 from vision_nn import VisionNN
 
-# Reversible experiment: keep VisionNN implementation, bypass it in the active path.
-USE_VISION_NN = False
+# Restore tested local neural perception; the worker remains on the ZBook via SSH.
+USE_VISION_NN = True
 
 from lite_world_model import WorldBuilder
 from lite_world_model import WorldModel
