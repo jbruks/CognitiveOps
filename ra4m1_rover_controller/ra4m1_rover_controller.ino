@@ -7,8 +7,8 @@ static const int THROTTLE_PIN = 10;
 // Front HC-SR04, D4=TRIG D5=ECHO
 static const int TRIG_PIN = 4;
 static const int ECHO_PIN = 5;
-static const float FRONT_STOP_CM = 50.0f;
-static const float FRONT_CLEAR_CM = 70.0f;
+static const float FRONT_STOP_CM = 30.0f;
+static const float FRONT_CLEAR_CM = 50.0f;
 static const unsigned long FRONT_SAMPLE_MS = 80;
 static const unsigned long FRONT_ECHO_TIMEOUT_US = 25000;
 static const int FRONT_CLEAR_SAMPLES = 5;
