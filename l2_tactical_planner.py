@@ -296,7 +296,7 @@ MOVE_BACKWARD
         #    print(f"Chosen action: {action.value}")
 
         # 🔐 HUMAN-ON-THE-LOOP APPROVAL
-        if self.human_on_loop:
+        if self.human_on_loop and source != "python_recovery":
             approved = self._request_user_approval(action, l3_task)
         else:
             approved = True
