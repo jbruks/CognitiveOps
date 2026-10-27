@@ -37,6 +37,9 @@ class L2TacticalPlanner:
         self.fallback = FallbackGuidance()
         # Operator approval state used by supervised field tests
         self.last_action_approved = True
+        self._blocked_cycles = 0
+        self._reverse_attempted = False
+        self._recovery_direction = None
          # 📁 carpeta única por ejecución
         #run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         #self.output_dir = f"simulaciones/{run_id}"
@@ -193,7 +196,16 @@ MOVE_BACKWARD
             return TacticalAction.HOLD, f"FRONT_SENSOR_ERROR: {exc}", None, "safety_hold"
 
         if sensor["front_blocked"] or not sensor["front_distance_valid"]:
-            XLogger.log("L2", "[SAFETY] Front blocked -> HOLD; no automatic reverse")
+            if not sensor["front_distance_valid"]:
+                self.rover_client.execute_tactical_action(TacticalAction.HOLD)
+                return TacticalAction.HOLD, "FRONT_SENSOR_INVALID", None, "safety_hold"
+            self._blocked_cycles += 1
+            if self._blocked_cycles >= 3 and not self._reverse_attempted:
+                self._reverse_attempted = True
+                self._recovery_direction = None
+                XLogger.log("L2", "[RECOVERY] One autonomous reverse attempt")
+                self.rover_client.execute_tactical_action(TacticalAction.MOVE_BACKWARD)
+                return TacticalAction.MOVE_BACKWARD, "AUTO_RECOVERY_REVERSE", None, "python_recovery"
             self.rover_client.execute_tactical_action(TacticalAction.HOLD)
             return TacticalAction.HOLD, "FRONT_SENSOR_BLOCKED", None, "safety_hold"
 
@@ -211,6 +223,20 @@ MOVE_BACKWARD
             l3_task,
             result.gps_state,
         )
+
+        # If VisionNN blocks forward, use the same one-shot recovery.
+        if action == TacticalAction.HOLD and decision_info in (
+            "VISION_FRONT_BLOCKED", "HEADING_CORRIDOR_BLOCKED"
+        ):
+            self._blocked_cycles += 1
+            if self._blocked_cycles >= 3 and not self._reverse_attempted:
+                self._reverse_attempted = True
+                XLogger.log("L2", "[RECOVERY] Visual blockage -> reverse once")
+                self.rover_client.execute_tactical_action(TacticalAction.MOVE_BACKWARD)
+                return TacticalAction.MOVE_BACKWARD, "AUTO_RECOVERY_REVERSE", None, "python_recovery"
+        elif action not in (TacticalAction.HOLD, TacticalAction.STOP):
+            self._blocked_cycles = 0
+            self._reverse_attempted = False
 
         action = self._apply_safety_envelope(
             action,
