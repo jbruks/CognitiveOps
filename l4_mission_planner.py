@@ -48,6 +48,14 @@ class L4MissionPlanner:
     def step(self):
         XLogger.log("L4", "step")
         rover_state = self.l1_rover_controler.get_state()
+
+        # Diagnostic-only sample every L4 cycle, even when phone GPS is unavailable.
+        # L2 remains the authority for the safety read immediately before a maneuver.
+        try:
+            sensor_diag = self.l1_rover_controler.get_front_sensor_state()
+            XLogger.log("L4-ULTRASONIC", f"Cycle sample: {sensor_diag}")
+        except Exception as exc:
+            XLogger.log("L4-ULTRASONIC", f"Cycle sample ERROR: {exc}")
        
         result = self.perception.observe_llm()
         
