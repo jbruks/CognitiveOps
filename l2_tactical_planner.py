@@ -27,12 +27,14 @@ class L2TacticalPlanner:
         llm_enabled: bool = LLM_ENABLED,
         fallback_enabled: bool = USE_FALLBACK_ON_ERROR,
         human_on_loop: bool = True,
+        ultrasonic_only: bool = False,
     ):
         self.rover_client = rover_client
         self.perception_module = perception_module
         self.llm_enabled = llm_enabled
         self.fallback_enabled = fallback_enabled
         self.human_on_loop = human_on_loop
+        self.ultrasonic_only = ultrasonic_only
         self.llm = TacticalLLMDecisionMaker()
         self.fallback = FallbackGuidance()
         # Operator approval state used by supervised field tests
@@ -203,6 +205,38 @@ MOVE_BACKWARD
             XLogger.log("L2", f"[SAFETY] Front telemetry unavailable: {exc}")
             self.rover_client.execute_tactical_action(TacticalAction.HOLD)
             return TacticalAction.HOLD, f"FRONT_SENSOR_ERROR: {exc}", None, "safety_hold"
+
+        if self.ultrasonic_only:
+            # A front-only rangefinder cannot certify lateral or rear clearance.
+            # No automatic reverse or detour. Limit steering by heading error.
+            if sensor["front_blocked"] or not sensor["front_distance_valid"]:
+                action = TacticalAction.HOLD
+                reason = "SONAR_BLOCKED_OR_INVALID"
+            else:
+                error = l3_task.get("heading_error_deg")
+                if error is None or abs(error) > 30:
+                    action = TacticalAction.HOLD
+                    reason = "HEADING_UNAVAILABLE_OR_LARGE"
+                elif error > 8:
+                    action = TacticalAction.FORWARD_RIGHT
+                    reason = "SONAR_CLEAR_HEADING_RIGHT"
+                elif error < -8:
+                    action = TacticalAction.FORWARD_LEFT
+                    reason = "SONAR_CLEAR_HEADING_LEFT"
+                else:
+                    action = TacticalAction.MOVE_FORWARD
+                    reason = "SONAR_CLEAR_FORWARD"
+            XLogger.log("L2", f"[ULTRASONIC_ONLY] {reason}: {action.value} sensor={sensor}")
+            if self.human_on_loop and action != TacticalAction.HOLD:
+                approved = self._request_user_approval(action, l3_task)
+                self.last_action_approved = approved
+                if not approved:
+                    action = TacticalAction.HOLD
+                    reason = "USER_REJECTED"
+            else:
+                self.last_action_approved = True
+            self.rover_client.execute_tactical_action(action)
+            return action, reason, None, "ultrasonic_only"
 
         if sensor["front_blocked"] or not sensor["front_distance_valid"]:
             if not sensor["front_distance_valid"]:
