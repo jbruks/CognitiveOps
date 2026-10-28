@@ -16,6 +16,7 @@ float frontDistanceCm = -1.0f;
 bool frontBlocked = true;  // Fail closed before valid readings
 unsigned long lastFrontSampleMs = 0;
 unsigned int frontClearCount = 0;
+int lastEchoLevelAfterPulse = -1;  // Diagnostic only: sampled immediately after pulseIn().
 
 // ===== RC pulse config =====
 static const int PWM_CENTER = 1500;
@@ -168,6 +169,7 @@ void serviceFrontSensor() {
   digitalWrite(TRIG_PIN, LOW);
 
   unsigned long echoUs = pulseIn(ECHO_PIN, HIGH, FRONT_ECHO_TIMEOUT_US);
+  lastEchoLevelAfterPulse = digitalRead(ECHO_PIN);
   if (echoUs == 0) {
     frontDistanceCm = -1.0f;
     frontBlocked = true;
@@ -312,6 +314,18 @@ void handleCommand(const String& cmdRaw) {
     return;
   }
   
+
+  if (cmd == "GET_ECHO") {
+    Serial.print("ECHO_LEVEL=");
+    Serial.print(digitalRead(ECHO_PIN) == HIGH ? 1 : 0);
+    Serial.print(" ECHO_AFTER_PULSE=");
+    Serial.print(lastEchoLevelAfterPulse);
+    Serial.print(" DISTANCE_CM=");
+    Serial.print(frontDistanceCm, 1);
+    Serial.print(" BLOCKED=");
+    Serial.println(frontBlocked ? 1 : 0);
+    return;
+  }
 
   if (cmd == "GET_DISTANCE") {
     Serial.print("DISTANCE_CM=");
