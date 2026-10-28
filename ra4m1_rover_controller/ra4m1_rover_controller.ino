@@ -172,9 +172,11 @@ void serviceFrontSensor() {
   unsigned long echoUs = pulseIn(ECHO_PIN, HIGH, FRONT_ECHO_TIMEOUT_US);
   lastEchoLevelAfterPulse = digitalRead(ECHO_PIN);
   if (echoUs == 0) {
+    // Experimental policy: missing echo is treated as clear, not as an obstacle.
+    // WARNING: this cannot distinguish empty space from a failed sensor.
     frontDistanceCm = -1.0f;
-    frontSensorStatus = "NO_ECHO";
-    frontBlocked = true;
+    frontSensorStatus = "CLEAR";
+    frontBlocked = false;
     frontClearCount = 0;
   } else {
     frontDistanceCm = echoUs * 0.0343f / 2.0f;
