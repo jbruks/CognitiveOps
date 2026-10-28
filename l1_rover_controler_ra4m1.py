@@ -103,6 +103,7 @@ class L1RoverControler:
             expected_prefixes=("DISTANCE_CM=",),
             required=True,
         )
+        XLogger.log("L1-ULTRASONIC", f"Arduino RAW: {response}")
         fields = self._parse_state_line("DISTANCE " + response)
         try:
             distance_cm = float(fields["DISTANCE_CM"])
@@ -116,6 +117,11 @@ class L1RoverControler:
         blocked = blocked_raw == "1"
         if not valid and not blocked:
             raise RuntimeError("Invalid HC-SR04 echo reported as unblocked")
+
+        XLogger.log(
+            "L1-ULTRASONIC",
+            f"Distance={distance_cm} cm | Blocked={blocked} | Valid={valid}",
+        )
 
         return {
             "front_distance_cm": distance_cm if valid else None,
