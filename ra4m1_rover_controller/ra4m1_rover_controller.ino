@@ -14,6 +14,7 @@ static const unsigned long FRONT_ECHO_TIMEOUT_US = 35000;
 static const int FRONT_CLEAR_SAMPLES = 5;
 float frontDistanceCm = -1.0f;
 bool frontBlocked = true;  // Fail closed before valid readings
+const char* frontSensorStatus = "NO_ECHO";  // Telemetry state; does not release the drive interlock
 unsigned long lastFrontSampleMs = 0;
 unsigned int frontClearCount = 0;
 int lastEchoLevelAfterPulse = -1;  // Diagnostic only: sampled immediately after pulseIn().
@@ -172,10 +173,12 @@ void serviceFrontSensor() {
   lastEchoLevelAfterPulse = digitalRead(ECHO_PIN);
   if (echoUs == 0) {
     frontDistanceCm = -1.0f;
+    frontSensorStatus = "NO_ECHO";
     frontBlocked = true;
     frontClearCount = 0;
   } else {
     frontDistanceCm = echoUs * 0.0343f / 2.0f;
+    frontSensorStatus = frontDistanceCm <= FRONT_STOP_CM ? "BLOCKED" : "CLEAR";
     if (frontDistanceCm <= FRONT_STOP_CM) {
       frontBlocked = true;
       frontClearCount = 0;
@@ -331,7 +334,9 @@ void handleCommand(const String& cmdRaw) {
     Serial.print("DISTANCE_CM=");
     Serial.print(frontDistanceCm, 1);
     Serial.print(" BLOCKED=");
-    Serial.println(frontBlocked ? 1 : 0);
+    Serial.print(frontBlocked ? 1 : 0);
+    Serial.print(" SENSOR_STATE=");
+    Serial.println(frontSensorStatus);
     return;
   }
 
@@ -353,6 +358,8 @@ void handleCommand(const String& cmdRaw) {
     Serial.print(frontDistanceCm, 1);
     Serial.print(" front_blocked=");
     Serial.print(frontBlocked ? 1 : 0);
+    Serial.print(" front_sensor_state=");
+    Serial.print(frontSensorStatus);
     Serial.print(" front_stop_count=");
     Serial.print(frontStopCount);
     Serial.print(" last_front_stop_ms=");
