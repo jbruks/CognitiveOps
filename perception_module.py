@@ -115,7 +115,7 @@ class PerceptionModule:
         self.mode = mode
         self.max_output_tokens = max_output_tokens
         self.worldbuilder = WorldBuilder()
-        self.vision_nn = VisionNN() if USE_VISION_NN else None
+        self.vision_nn = VisionNN() if USE_VISION_NN and mode == "camera" else None
 
         # --- GPS SETUP ---
         # Perception only reads GPS state. It does not interpret mission, target,
