@@ -55,6 +55,12 @@ def main():
     )
     
     parser.add_argument(
+        "--ultrasonic-only",
+        action="store_true",
+        help="Use phone GPS/heading and real HC-SR04 only; no camera or VisionNN",
+    )
+
+    parser.add_argument(
         "--autonomous",
         action="store_true",
         help="Execute tactical actions without operator approval",
@@ -81,7 +87,16 @@ def main():
     # =========================
     # Perception
     # =========================
-    if args.no_camera:
+    if args.ultrasonic_only and args.no_camera:
+        parser.error("--ultrasonic-only and --no-camera are mutually exclusive")
+
+    if args.ultrasonic_only:
+        perception = PerceptionModule(
+            mode="simulated",
+            default_scenario="uncertain",
+            gps_enabled=False,
+        )
+    elif args.no_camera:
         perception = PerceptionModule(
             mode="simulated",
             default_scenario="corridor_forward",
@@ -102,6 +117,7 @@ def main():
         llm_enabled=True,
         fallback_enabled=True,
         human_on_loop=not args.autonomous,
+        ultrasonic_only=args.ultrasonic_only,
     )
 
     # =========================
