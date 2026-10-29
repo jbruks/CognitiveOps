@@ -22,7 +22,11 @@ class L4MissionPlanner:
         self.l1_rover_controler = l1_rover_controler
         self.task_planner = task_planner
         self.memory = memory_system
-        self.llm = llm_service
+        # By default use the very same inference service injected into L3.
+        # Do not invoke inference automatically during the control cycle.
+        self.llm = llm_service if llm_service is not None else getattr(
+            task_planner, "llm", None
+        )
         self.current_task = "EXPLORE"
         self.last_navigation_result = None
         self.navigation_objective = (
