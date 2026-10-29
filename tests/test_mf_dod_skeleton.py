@@ -14,6 +14,23 @@ from unittest.mock import patch
 # L4 planner imports only the PerceptionResult type from that module.
 perception_stub = types.ModuleType("perception_module")
 perception_stub.PerceptionResult = type("PerceptionResult", (), {})
+
+def fake_fuse_front_sensor(result, sensor):
+    """Offline stand-in for the perception module's sonar fusion boundary."""
+    result.front_sensor = dict(sensor)
+    if sensor["front_blocked"] or not sensor["front_distance_valid"]:
+        state = result.perception_state
+        state.obstacle_ahead = True
+        state.corridor_visible = False
+        state.summary = (state.summary + " | FRONT_ULTRASONIC_BLOCKED").strip()
+        for region in (state.regions or []):
+            if isinstance(region, dict) and region.get("name") == "front":
+                region["traversable"] = False
+        if state.free_direction == "center":
+            state.free_direction = "none"
+    return result
+
+perception_stub.fuse_front_sensor = fake_fuse_front_sensor
 sys.modules["perception_module"] = perception_stub
 
 from l4_mission_planner import L4MissionPlanner
