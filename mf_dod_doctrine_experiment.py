@@ -66,7 +66,13 @@ def main(argv=None):
         parser.error("OpenAI mode requires --allow-api and --model")
     if args.allow_api and args.backend != "openai":
         parser.error("--allow-api requires OpenAI mode")
-    docs = DoctrineService.from_pdf_paths(args.pdf) if args.pdf else DoctrineService()
+    from pathlib import Path
+    # Prefer explicit selections. Otherwise discover checked-in reference PDFs.
+    pdf_paths = args.pdf if args.pdf else [
+        str(p) for p in sorted((Path(__file__).resolve().parent /
+                              "docs" / "references").glob("*.pdf"))
+    ]
+    docs = DoctrineService.from_pdf_paths(pdf_paths) if pdf_paths else DoctrineService()
     service = LLMService(backend=args.backend, model=args.model)
     report = evaluate(service, docs)
     print(json.dumps(report, indent=2, ensure_ascii=False))
