@@ -133,3 +133,22 @@ python -m mf_dod_doctrine_v2 --backend openai --allow-api --model gpt-5.4 \
 ```
 
 The retrieval currently uses role-specific lexical queries, **not embedding-based semantic search**. The richer schema makes doctrine's proposed effect inspectable; it does not establish decision quality on its own. All objective coordinates are lab placeholders. The new experiment does not modify L3/L4 live physical loops.
+
+## Issue #13 initial Mission Package slice — awaiting laptop validation
+
+`mission_package.py` introduces a versioned local manifest + explicit EPSG:4326 GeoJSON features (`authorized` Polygon, `excluded` Polygon and `poi` Point). This is a **small first slice**, not full GIS: one ring per polygon, no polygon holes, no reprojection, and no spatial uncertainty margins. Strict boundary policy rejects points on authorization boundaries and in/on exclusions. Geographic checks bind proposed goals to operator-supplied POI identifiers. Human approval is an explicit separate call converting proposals to immutable `NavigationObjective` values.
+
+`mf_dod_mission_package_demo.py` proposes goals from the *actual operator POI catalog*, without permitting GPT to invent coordinates. The sample in `examples/mission_package_lab/` is **synthetic**, not a survey of an airfield or an authorization to move. The demo deliberately does not approve goals.
+
+```bash
+cd ~/RoverGit-mf-dod
+source ~/RoverGit/.venv/bin/activate
+git pull --ff-only
+python -m unittest -v tests/test_mission_package.py
+python -m mf_dod_mission_package_demo examples/mission_package_lab/manifest.json
+# Optional explicit opt-in billable model request (does not control rover)
+python -m mf_dod_mission_package_demo examples/mission_package_lab/manifest.json \
+ --backend openai --allow-api --model gpt-5.4
+```
+
+**Remaining #13 scope:** actual operator-supplied georeferenced map and site-specific documents, ingestion/provenance of supporting documents and doctrine into the L4 request, quality/grounding evaluation and full end-to-end approval workflow UX. The demo does not claim completion of Issue #13. Never use the synthetic coordinates for physical motion.
