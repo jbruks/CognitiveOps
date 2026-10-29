@@ -20,3 +20,19 @@ class PromptBuilderBase:
         output = self.build_output_format()
 
         return f"{context}\n\n{rules}\n\n{output}".strip()
+
+    @staticmethod
+    def compose_cognitive_context(level, intent, objective, constraints,
+                                  memory_events=(), doctrine_hits=()):
+        """Build bounded level context without site-specific prompt templates."""
+        import json
+        if level not in ("L3", "L4"):
+            raise ValueError("Only L3/L4 cognitive contexts are supported")
+        return {
+            "level": level,
+            "intent": intent,
+            "objective": objective,
+            "constraints": constraints,
+            "recent_events": list(memory_events)[-10:],
+            "doctrine": list(doctrine_hits)[:5] if level == "L4" else [],
+        }
