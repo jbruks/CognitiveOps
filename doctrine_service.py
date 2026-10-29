@@ -55,3 +55,38 @@ class DoctrineService:
         return {"source": p.source, "locator": p.locator,
                 "locator_verified": p.verified, "excerpt": p.text,
                 "overlap_score": hit.score}
+
+    @classmethod
+    def from_pdf_paths(cls, paths, *, max_chars_per_page=2400):
+        """Extract page-attributed text from local PDFs via pypdf.
+
+        Pages are PDF page indices + 1, NOT verified printed page numbers.
+        Text extraction is not OCR; scanned pages may yield no passages.
+        Files must be explicitly supplied by the operator.
+        """
+        from pathlib import Path
+        try:
+            from pypdf import PdfReader
+        except ImportError as exc:
+            raise RuntimeError("PDF ingestion requires: pip install pypdf") from exc
+
+        passages = []
+        for supplied in paths:
+            path = Path(supplied)
+            if not path.is_file() or path.suffix.lower() != ".pdf":
+                raise ValueError(f"PDF not found or invalid: {path}")
+            reader = PdfReader(str(path))
+            for page_num, page in enumerate(reader.pages, 1):
+                raw = page.extract_text() or ""
+                text = " ".join(raw.split())
+                if not text:
+                    continue
+                for offset in range(0, len(text), max_chars_per_page):
+                    fragment = text[offset:offset + max_chars_per_page]
+                    passages.append(DoctrinePassage(
+                        source=path.name,
+                        text=fragment,
+                        locator=f"PDF page {page_num}",
+                        verified=True,
+                    ))
+        return cls(passages)
