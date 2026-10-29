@@ -103,7 +103,33 @@ class L3TaskPlanner:
         else:
             self._contract_hold_cycles = 0
             status, reason = NavigationStatus.IN_PROGRESS, None
-        return NavigationResult(objective.objective_id, status, distance, reason)
+        response = NavigationResult(objective.objective_id, status, distance, reason)
+        if hasattr(self.memory, "record_navigation_event"):
+            self.memory.record_navigation_event(objective.objective_id,
+                                                status.value, reason, distance)
+        return response
+
+    def review_navigation_block(self, objective, reason, constraints=None):
+        """Explicit L3 strategic review, never a tactical or motor action."""
+        from llm.prompt_framework import PromptBuilderBase
+        if not isinstance(objective, NavigationObjective):
+            raise TypeError("NavigationObjective required")
+        context = PromptBuilderBase.compose_cognitive_context(
+            "L3", objective.purpose,
+            {"id": objective.objective_id,
+             "latitude": objective.latitude, "longitude": objective.longitude},
+            constraints or {},
+            self.memory.get_navigation_events() if hasattr(
+                self.memory, "get_navigation_events") else (),
+        )
+        context["blocked_reason"] = reason
+        return self.llm.infer(
+            "L3",
+            "The rover is stopped. Choose HOLD or REQUEST_L4_REPLAN. "
+            "No motor actions or unverified waypoints.",
+            context,
+            ("HOLD", "REQUEST_L4_REPLAN"),
+        )
 
     #def step(self, rover_state, result, mission):
     def step(self, rover_state, result, mission):
