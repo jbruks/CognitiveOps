@@ -50,6 +50,7 @@ class L3TaskPlanner:
         self._blocked_cycles = 0
         self._block_escalated = False
         self._block_advice = None
+        self._contract_hold_cycles = 0
 
     def step_objective(self, rover_state, perception_result, objective: NavigationObjective):
         """Run the existing GPS/Guidance/L2 path; expose cognitive feedback to L4.
@@ -72,6 +73,7 @@ class L3TaskPlanner:
             self._blocked_cycles = 0
             self._block_escalated = False
             self._block_advice = None
+            self._contract_hold_cycles = 0
 
         legacy_mission = Mission(task=MissionTask.GOTO,
                                  target_lat=objective.latitude,
@@ -81,6 +83,9 @@ class L3TaskPlanner:
         guidance = self.last_guidance_task
         distance = guidance.distance_remaining_m
 
+        if action != TacticalAction.HOLD:
+            self._contract_hold_cycles = 0
+
         if (guidance.task_type == GuidanceTaskType.HOLD
                 and distance is not None and distance <= objective.radius_m):
             status, reason = NavigationStatus.COMPLETED, None
@@ -89,9 +94,14 @@ class L3TaskPlanner:
         elif action == TacticalAction.STOP:
             status, reason = NavigationStatus.BLOCKED, "TACTICAL_STOP"
         elif action == TacticalAction.HOLD:
-            # A tactical HOLD is not proof of eventual failure.
-            status, reason = NavigationStatus.BLOCKED, "TACTICAL_HOLD"
+            # L2 already commanded HOLD. Do not escalate a transient stop.
+            self._contract_hold_cycles += 1
+            if self._contract_hold_cycles >= 3:
+                status, reason = NavigationStatus.BLOCKED, "PERSISTENT_TACTICAL_HOLD"
+            else:
+                status, reason = NavigationStatus.IN_PROGRESS, "TEMPORARY_TACTICAL_HOLD"
         else:
+            self._contract_hold_cycles = 0
             status, reason = NavigationStatus.IN_PROGRESS, None
         return NavigationResult(objective.objective_id, status, distance, reason)
 
