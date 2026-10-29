@@ -111,3 +111,8 @@ python -m mf_dod_doctrine_experiment --backend openai --allow-api \
 **Source inventory caveat:** GitHub code search on the default branch did not surface the referenced manuals; it does not conclusively inventory binary assets in the feature branch. No original PDF file has been downloaded, extracted or verified here. Operator must supply actual PDF paths before claiming Doctrine on Demand with genuine sources. Citation `PDF page N` refers to physical PDF page index, not printed manual pagination. Retrieval is basic lexical overlap; relevance and whether the doctrinal input *improves* planning require manual examination, not merely a changed objective order.
 
 The experiment reports `with_doctrine: null` if no relevant passages are found. It does not connect to hardware or execute navigation. Live use incurs one API call without matches or two with matches.
+
+
+### Reference PDF discovery
+
+The Doctrine A/B experiment now discovers all `*.pdf` files in `docs/references/` by default. Explicit `--pdf` arguments override auto-discovery. Four manuals were confirmed on the operator's machine: `MCTP 3-01A (SECURED).pdf`, `MCRP 3-34.3 (W CH 1) (SECURED).pdf`, `ATP 3-20.98 Reconnaissance Platoon 2013.pdf`, and `fm_3-25.26_map_reading_and_land_navigation.pdf`. The secured files may require decryption or raise extraction errors; their content has not yet been inspected. To limit cost and avoid protected files, pass `--pdf docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf` explicitly. The generated PDF page labels are indices, not verified printed references.
