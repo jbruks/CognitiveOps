@@ -55,5 +55,29 @@ class SharedInferenceTest(unittest.TestCase):
         self.assertEqual(svc.decide_tactical("test"), "MOVE_FORWARD")
 
 
+    def test_plan_orders_all_approved_objectives(self):
+        ids = [{"objective_id": "A", "purpose": "Surface"},
+               {"objective_id": "B", "purpose": "Access"}]
+        stub = LLMService()
+        result = stub.plan_objectives("Inspect all areas", ids)
+        self.assertEqual(result.output["objective_ids"], ["A", "B"])
+
+        class Client:
+            responses = None
+            def __init__(self):
+                self.responses = self
+                self.text = '{"objective_ids":["B","A"],"reason":"Access first"}'
+            def create(self, **kwargs):
+                return SimpleNamespace(output_text=self.text, id="mock-plan")
+
+        fake = Client()
+        service = LLMService(backend="openai", model="mock", client=fake)
+        reordered = service.plan_objectives("Inspect all", ids)
+        self.assertEqual(reordered.output["objective_ids"], ["B", "A"])
+        fake.text = '{"objective_ids":["B","C"],"reason":"Unauthorized target"}'
+        with self.assertRaises(ValueError):
+            service.plan_objectives("Inspect all", ids)
+
+
 if __name__ == "__main__":
     unittest.main()
