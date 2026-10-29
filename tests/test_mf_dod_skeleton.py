@@ -291,5 +291,102 @@ class SkeletonL4SmokeTest(unittest.TestCase):
         self.assertEqual(rover.stop_calls, 0)
 
 
+
+    def test_navigation_contract_progress_arrival_and_stable_id(self):
+        """Real L4/L3 contract across cycles, preserving the L2 adapter."""
+        from l3_task_planner import L3TaskPlanner
+        from l3_models import NavigationStatus
+
+        class PhoneFeed:
+            def __init__(self):
+                self.latitudes = iter([38.9998, 39.0])
+            def read(self):
+                return SimpleNamespace(
+                    latitude=next(self.latitudes), longitude=-0.6,
+                    horizontal_accuracy_m=1.0, gps_status=1,
+                    heading_deg=0.0, fresh=True, available=True, age_s=0.0,
+                )
+
+        class Attitude:
+            def read(self):
+                return SimpleNamespace(
+                    heading_deg=0.0, fresh=True, available=True, age_s=0.0
+                )
+
+        class RecordingL2:
+            def __init__(self):
+                self.received = []
+            def step(self, rover_state, observation, task, observability=None):
+                self.received.append(task)
+                return TacticalAction.MOVE_FORWARD, "CLEAR", None, "stub"
+
+        l1 = MockL1()
+        l2 = RecordingL2()
+        mem = MemorySystem()
+        l3 = L3TaskPlanner(l2, object(), mem)
+        l3.phone_position = PhoneFeed()
+        l3.phone_attitude = Attitude()
+        mission = Mission(task=MissionTask.GOTO, target_lat=39.0,
+                          target_lon=-0.6, arrival_radius_m=5.0)
+        with patch.object(L4MissionPlanner.__init__.__globals__["os"], "makedirs"):
+            l4 = L4MissionPlanner(FakePerception(), l1, l3, mem, mission)
+        objective_id = l4.navigation_objective.objective_id
+        l4.step()
+        self.assertEqual(l4.last_navigation_result.status,
+                         NavigationStatus.IN_PROGRESS)
+        self.assertEqual(l4.last_navigation_result.objective_id, objective_id)
+        self.assertEqual(l2.received[0]["task_type"], "FOLLOW_BEARING")
+        l4.step()
+        self.assertEqual(l4.last_navigation_result.status,
+                         NavigationStatus.COMPLETED)
+        self.assertEqual(l4.last_navigation_result.objective_id, objective_id)
+        self.assertEqual(mission.status, MissionStatus.COMPLETED)
+        self.assertEqual(l1.stop_calls, 1)
+        self.assertEqual(len(l2.received), 1)
+
+    def test_navigation_contract_blocked_and_invalid_objective(self):
+        """Blocked feedback stops L4; malformed objective never reaches L2."""
+        from l3_task_planner import L3TaskPlanner
+        from l3_models import NavigationObjective, NavigationStatus
+
+        class Phone:
+            def read(self):
+                return SimpleNamespace(
+                    latitude=38.9998, longitude=-0.6,
+                    horizontal_accuracy_m=1.0, gps_status=1,
+                    heading_deg=0.0, fresh=True, available=True, age_s=0.0,
+                )
+
+        class BlockedL2:
+            def __init__(self):
+                self.calls = 0
+            def step(self, *args, **kwargs):
+                self.calls += 1
+                return TacticalAction.HOLD, "FRONT_SENSOR_BLOCKED", None, "stub"
+
+        l1 = MockL1()
+        l2 = BlockedL2()
+        mem = MemorySystem()
+        perception = FakePerception()
+        l3 = L3TaskPlanner(l2, perception, mem)
+        l3.phone_position = Phone()
+        l3.phone_attitude = Phone()
+        mission = Mission(task=MissionTask.GOTO, target_lat=39.0,
+                          target_lon=-0.6, arrival_radius_m=5.0)
+        with patch.object(L4MissionPlanner.__init__.__globals__["os"], "makedirs"):
+            l4 = L4MissionPlanner(perception, l1, l3, mem, mission)
+        l4.step()
+        self.assertEqual(l4.last_navigation_result.status,
+                         NavigationStatus.BLOCKED)
+        self.assertEqual(l4.last_navigation_result.reason, "TACTICAL_HOLD")
+        self.assertEqual(mission.status, MissionStatus.ACTIVE)
+        self.assertEqual(l1.stop_calls, 1)
+        self.assertEqual(l2.calls, 1)
+        invalid = NavigationObjective("BAD-001", 99.0, 0.0)
+        response = l3.step_objective(l1.get_state(), FakeObservation(), invalid)
+        self.assertEqual(response.status, NavigationStatus.FAILED)
+        self.assertEqual(l2.calls, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
