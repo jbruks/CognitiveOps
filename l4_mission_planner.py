@@ -5,7 +5,7 @@ from utils.xlogger import XLogger
 
 from perception_module import PerceptionResult
 
-from l3_models import GuidanceTaskType
+from l3_models import GuidanceTaskType, NavigationObjective, NavigationStatus
 from l4_models import MissionStatus
 
 class L4MissionPlanner:
@@ -24,6 +24,15 @@ class L4MissionPlanner:
         self.memory = memory_system
         self.llm = llm_service
         self.current_task = "EXPLORE"
+        self.last_navigation_result = None
+        self.navigation_objective = (
+            NavigationObjective("GOTO-001", mission.target_lat,
+                                mission.target_lon, mission.arrival_radius_m,
+                                "Reach authorized destination")
+            if mission.task.value == "GOTO"
+            and mission.target_lat is not None
+            and mission.target_lon is not None else None
+        )
         self.perception = perception_module
         
         run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -61,35 +70,50 @@ class L4MissionPlanner:
         
         self.mission.status = MissionStatus.ACTIVE
 
-        action = self.task_planner.step(
-            rover_state,
-            result,
-            self.mission,
-        )
-
-        guidance = self.task_planner.last_guidance_task
-
-        if guidance.task_type == GuidanceTaskType.HOLD:
-            if (
-                guidance.distance_remaining_m is not None
-                and guidance.distance_remaining_m <= self.mission.arrival_radius_m
-            ):
+        if (self.navigation_objective is not None
+                and callable(getattr(self.task_planner, "step_objective", None))):
+            self.last_navigation_result = self.task_planner.step_objective(
+                rover_state, result, self.navigation_objective
+            )
+            if self.last_navigation_result.status == NavigationStatus.COMPLETED:
                 self.mission.status = MissionStatus.COMPLETED
+                self.l1_rover_controler.stop()
+                XLogger.log("L4", "Navigation objective completed")
+            elif self.last_navigation_result.status in (
+                    NavigationStatus.BLOCKED, NavigationStatus.FAILED):
+                self.l1_rover_controler.stop()
+                XLogger.log("L4", "Navigation requires review: "
+                            + str(self.last_navigation_result.reason))
+        else:
+            self.task_planner.step(
+                rover_state,
+                result,
+                self.mission,
+            )
 
-                XLogger.log(
-                    "L4",
-                    (
-                        "GO_TO_POINT completed: "
-                        f"distance={guidance.distance_remaining_m:.2f} m"
-                    ),
-                )
-            else:
-                XLogger.log(
-                    "L4",
-                    "Guidance HOLD: navigation state not valid",
-                )
+            guidance = self.task_planner.last_guidance_task
 
-            self.l1_rover_controler.stop()
+            if guidance.task_type == GuidanceTaskType.HOLD:
+                if (
+                    guidance.distance_remaining_m is not None
+                    and guidance.distance_remaining_m <= self.mission.arrival_radius_m
+                ):
+                    self.mission.status = MissionStatus.COMPLETED
+
+                    XLogger.log(
+                        "L4",
+                        (
+                            "GO_TO_POINT completed: "
+                            f"distance={guidance.distance_remaining_m:.2f} m"
+                        ),
+                    )
+                else:
+                    XLogger.log(
+                        "L4",
+                        "Guidance HOLD: navigation state not valid",
+                    )
+
+                self.l1_rover_controler.stop()
         
         perception_state=result.perception_state
         image_bytes=result.image_bytes
