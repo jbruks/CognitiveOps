@@ -52,7 +52,7 @@ class CognitiveDemoTest(unittest.TestCase):
         self.assertEqual([x["id"] for x in report["objectives"]],
                          ["LAB-FACILITIES", "LAB-ACCESS", "LAB-RUNWAY"])
         self.assertEqual(len(client.calls), 2)
-        review = next(d for d in report["decision_log"] if d["event"] == "L3_REVIEW")
+        review = next(d for d in report["decision_log"] if d.get("event") == "L3_REVIEW")
         self.assertEqual(review["decision"], "REQUEST_L4_REPLAN")
         self.assertFalse(review["action_executed"])
 
