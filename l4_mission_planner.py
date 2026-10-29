@@ -164,6 +164,37 @@ class L4MissionPlanner:
         # Do not activate the objective or move the rover here.
         return chosen, advice
 
+    def prepare_inspection_plan(self, intent, approved_objectives,
+                                observation_questions, doctrine_service=None):
+        """Prepare an inert inspection plan; no GPS target is activated here.
+
+        LLM may choose a first approved objective, but cannot invent coordinates.
+        Doctrine excerpts are recorded as attributed references, not commands.
+        """
+        from mf_dod_mission import InspectionObjective, InspectionPlan
+        approved = list(approved_objectives)
+        if not approved:
+            raise ValueError("No approved observation points")
+        if any(o.objective_id not in observation_questions for o in approved):
+            raise ValueError("Missing observation question for objective")
+        hits = (doctrine_service.retrieve(intent) if doctrine_service else [])
+        citations = ([doctrine_service.provenance(hit) for hit in hits]
+                     if doctrine_service else [])
+        first, advice = self.plan_from_intent(intent, approved)
+        ordered = [first] + [item for item in approved if item != first]
+        plan = InspectionPlan(
+            intent=intent,
+            objectives=[
+                InspectionObjective(o, observation_questions[o.objective_id])
+                for o in ordered
+            ],
+            doctrine=citations,
+            decisions=[{"event": "PLAN_CREATED", "selected_first": first.objective_id,
+                        "provider": advice.provider,
+                        "reason": advice.output["reason"]}],
+        )
+        return plan
+
     def call_llm_for_task(self, context):
         XLogger.log("L4", "call_llm_for_task")
         return "EXPLORE"
