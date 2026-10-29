@@ -176,7 +176,12 @@ class SkeletonL4SmokeTest(unittest.TestCase):
 
     def test_real_l2_forward_and_front_block_hold_without_hardware(self):
         """Real L4→L3→L2, with a strict fake actuation boundary."""
-        from l2_tactical_planner import L2TacticalPlanner
+        # Import real L2 without importing the legacy OpenAI/Ollama client.
+        # It is not used in deterministic step(), but imported at module load.
+        llm_stub = types.ModuleType("llm_decision")
+        llm_stub.TacticalLLMDecisionMaker = lambda: object()
+        with patch.dict(sys.modules, {"llm_decision": llm_stub}):
+            from l2_tactical_planner import L2TacticalPlanner
         from l3_task_planner import L3TaskPlanner
 
         class RecordingRover(MockL1):
@@ -226,15 +231,13 @@ class SkeletonL4SmokeTest(unittest.TestCase):
         perception = StaticPerception()
         # Prevent L2's legacy inference client from opening API/SSH channels
         # at construction, even though step() uses deterministic navigation.
-        with patch("l2_tactical_planner.TacticalLLMDecisionMaker",
-                   return_value=object()):
-            l2 = L2TacticalPlanner(
-                rover_client=rover,
-                perception_module=perception,
-                world_builder=None,
-                llm_enabled=False,
-                human_on_loop=False,
-            )
+        l2 = L2TacticalPlanner(
+            rover_client=rover,
+            perception_module=perception,
+            world_builder=None,
+            llm_enabled=False,
+            human_on_loop=False,
+        )
         memory = MemorySystem()
         l3 = L3TaskPlanner(l2_planner=l2, perception_module=perception,
                            memory_system=memory)
