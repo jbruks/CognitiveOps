@@ -29,6 +29,15 @@ def _ring(raw):
     return tuple(pts)
 
 
+def _on_boundary(point, ring):
+    x, y = point
+    for (ax, ay), (bx, by) in zip(ring, ring[1:]):
+        cross = (x-ax)*(by-ay)-(y-ay)*(bx-ax)
+        if abs(cross) < 1e-11 and min(ax,bx) <= x <= max(ax,bx) and min(ay,by) <= y <= max(ay,by):
+            return True
+    return False
+
+
 def _inside(point, ring):
     """Strict interior; boundary excluded, including segment endpoints."""
     x, y = point
@@ -107,7 +116,7 @@ class MissionPackage:
     def allowed(self, point):
         p = _point(point)
         return any(_inside(p, ring) for ring in self.authorized) and not any(
-            _inside(p, ring) for ring in self.exclusions)
+            _inside(p, ring) or _on_boundary(p, ring) for ring in self.exclusions)
 
     def candidate(self, objective_id, poi_id, purpose, question):
         if poi_id not in self.pois:
