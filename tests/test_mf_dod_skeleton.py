@@ -44,6 +44,9 @@ from memory_system import MemorySystem
 class FakeObservation:
     perception_state: object = None
     image_bytes: bytes | None = None
+    world_model: object | None = None
+    gps_state: dict | None = None
+    front_sensor: dict | None = None
 
 
 class MockL1:
