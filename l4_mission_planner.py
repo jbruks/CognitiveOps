@@ -180,8 +180,23 @@ class L4MissionPlanner:
         hits = (doctrine_service.retrieve(intent) if doctrine_service else [])
         citations = ([doctrine_service.provenance(hit) for hit in hits]
                      if doctrine_service else [])
-        first, advice = self.plan_from_intent(intent, approved)
-        ordered = [first] + [item for item in approved if item != first]
+        from llm.prompt_framework import PromptBuilderBase
+        context = PromptBuilderBase.compose_cognitive_context(
+            "L4", intent, None, {"approved_only": True},
+            self.memory.get_mission_events() if hasattr(
+                self.memory, "get_mission_events") else (),
+            citations,
+        )
+        advice = self.llm.plan_objectives(
+            intent,
+            [{"objective_id": item.objective_id, "purpose": item.purpose,
+              "question": observation_questions[item.objective_id]}
+             for item in approved],
+            context=context,
+        )
+        approved_by_id = {item.objective_id: item for item in approved}
+        ordered = [approved_by_id[oid] for oid in advice.output["objective_ids"]]
+        first = ordered[0]
         plan = InspectionPlan(
             intent=intent,
             objectives=[
