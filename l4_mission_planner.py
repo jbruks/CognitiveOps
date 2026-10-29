@@ -137,6 +137,33 @@ class L4MissionPlanner:
    
     
 
+    def plan_from_intent(self, intent: str, approved_objectives):
+        """Explicit non-actuating L4 selection from operator-approved destinations."""
+        if not isinstance(intent, str) or not intent.strip():
+            raise ValueError("Mission intent is required")
+        objectives = list(approved_objectives)
+        if not objectives or any(not isinstance(item, NavigationObjective)
+                                 for item in objectives):
+            raise ValueError("Provide approved NavigationObjective instances")
+        ids = [item.objective_id for item in objectives]
+        if len(ids) != len(set(ids)) or any(not value for value in ids):
+            raise ValueError("Objective identifiers must be unique and nonempty")
+        if self.llm is None:
+            raise RuntimeError("Shared inference service unavailable")
+        advice = self.llm.infer(
+            level="L4",
+            instructions=("Select one approved destination for the mission intent. "
+                          "Do not invent coordinates or motor commands."),
+            context={"intent": intent, "approved_objectives": [
+                {"objective_id": item.objective_id, "purpose": item.purpose}
+                for item in objectives]},
+            allowed_decisions=ids,
+        )
+        chosen = next(item for item in objectives
+                      if item.objective_id == advice.output["decision"])
+        # Do not activate the objective or move the rover here.
+        return chosen, advice
+
     def call_llm_for_task(self, context):
         XLogger.log("L4", "call_llm_for_task")
         return "EXPLORE"
