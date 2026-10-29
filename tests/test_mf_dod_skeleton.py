@@ -173,5 +173,100 @@ class SkeletonL4SmokeTest(unittest.TestCase):
         self.assertEqual(l1.commands, [])
 
 
+
+    def test_real_l2_forward_and_front_block_hold_without_hardware(self):
+        """Real L4→L3→L2, with a strict fake actuation boundary."""
+        from l2_tactical_planner import L2TacticalPlanner
+        from l3_task_planner import L3TaskPlanner
+
+        class RecordingRover(MockL1):
+            def __init__(self):
+                super().__init__()
+                self.front_blocked = False
+
+            def get_front_sensor_state(self):
+                return {
+                    "front_distance_cm": 90.0 if not self.front_blocked else 20.0,
+                    "front_distance_valid": True,
+                    "front_blocked": self.front_blocked,
+                }
+
+            def execute_tactical_action(self, action):
+                # In-memory log only. This object has no physical control method.
+                self.commands.append(action)
+
+        class PhoneFeed:
+            def read(self):
+                return SimpleNamespace(
+                    latitude=38.9998, longitude=-0.6,
+                    horizontal_accuracy_m=1.0, gps_status=1,
+                    heading_deg=0.0, fresh=True, available=True, age_s=0.0,
+                )
+
+        class StaticPerception:
+            llm_client = None
+
+            def observe_llm(self):
+                return FakeObservation(
+                    perception_state=PerceptionState(
+                        obstacle_ahead=False,
+                        free_direction="center",
+                        corridor_visible=True,
+                        confidence=1.0,
+                        summary="Synthetic three-sector clear corridor",
+                        regions=[
+                            {"name": "left", "traversable": True},
+                            {"name": "front", "traversable": True},
+                            {"name": "right", "traversable": True},
+                        ],
+                    )
+                )
+
+        rover = RecordingRover()
+        perception = StaticPerception()
+        # Prevent L2's legacy inference client from opening API/SSH channels
+        # at construction, even though step() uses deterministic navigation.
+        with patch("l2_tactical_planner.TacticalLLMDecisionMaker",
+                   return_value=object()):
+            l2 = L2TacticalPlanner(
+                rover_client=rover,
+                perception_module=perception,
+                world_builder=None,
+                llm_enabled=False,
+                human_on_loop=False,
+            )
+        memory = MemorySystem()
+        l3 = L3TaskPlanner(l2_planner=l2, perception_module=perception,
+                           memory_system=memory)
+        l3.phone_position = PhoneFeed()
+        l3.phone_attitude = PhoneFeed()
+        mission = Mission(
+            task=MissionTask.GOTO, target_lat=39.0, target_lon=-0.6,
+            arrival_radius_m=5.0,
+        )
+        with patch.object(L4MissionPlanner.__init__.__globals__["os"], "makedirs"):
+            l4 = L4MissionPlanner(
+                perception_module=perception, l1_rover_controler=rover,
+                task_planner=l3, memory_system=memory, mission=mission,
+            )
+
+        # Clear corridor: real L2 chooses MOVE_FORWARD, mock only records it.
+        l4.step()
+        self.assertEqual(l3.last_guidance_task.task_type,
+                         GuidanceTaskType.FOLLOW_BEARING)
+        self.assertEqual(rover.commands, [TacticalAction.MOVE_FORWARD])
+        self.assertEqual(mission.status, MissionStatus.ACTIVE)
+
+        # Front obstacle: existing L2 must return HOLD. This is one blocked
+        # cycle only; do not exercise its autonomous-reverse recovery policy.
+        rover.front_blocked = True
+        l4.step()
+        self.assertEqual(rover.commands,
+                         [TacticalAction.MOVE_FORWARD, TacticalAction.HOLD])
+        self.assertEqual(mission.status, MissionStatus.ACTIVE)
+        self.assertEqual(l2._blocked_cycles, 1)
+        self.assertEqual(rover.stop_calls, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
