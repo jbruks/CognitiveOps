@@ -288,7 +288,8 @@ class SkeletonL4SmokeTest(unittest.TestCase):
                          [TacticalAction.MOVE_FORWARD, TacticalAction.HOLD])
         self.assertEqual(mission.status, MissionStatus.ACTIVE)
         self.assertEqual(l2._blocked_cycles, 1)
-        self.assertEqual(rover.stop_calls, 0)
+        # L4 must explicitly stop on BLOCKED feedback from the real L3.
+        self.assertEqual(rover.stop_calls, 1)
 
 
 
