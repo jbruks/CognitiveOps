@@ -24,7 +24,7 @@ class CognitiveDemoTest(unittest.TestCase):
              "LAB-FACILITIES": "UNVERIFIED"},
         )
         self.assertEqual(report["doctrine_sources"][0]["locator"], "PDF page 8")
-        l3 = [d for d in report["decision_log"] if d["event"] == "L3_REVIEW"]
+        l3 = [d for d in report["decision_log"] if d.get("event") == "L3_REVIEW"]
         self.assertEqual(len(l3), 1)
         self.assertEqual(l3[0]["decision"], "HOLD")
         self.assertFalse(l3[0]["action_executed"])
