@@ -208,3 +208,18 @@ These should be resolved through the linked issues following code inspection, **
 ---
 
 **Change control:** Update this register when a decision changes; include rationale and link to the relevant issue/PR. The implementation should reflect the accepted decisions, not the other way around.
+
+
+## ADR-011 — Freeze L1, L2 and VisionNN for POC 1
+
+**Status:** Accepted (scope refinement, 2026-10-29).
+
+**POC 1** focuses on L4 mission intelligence, DoctrineService, L3 navigation intelligence, shared GPT infrastructure (used by L4/L3), existing memory and prompt composition. L2 tactical decisions, VisionNN, L1/RA4M1 and firmware remain unchanged. L3 interprets existing tactical signals and escalates issues to L4; reuse the existing L3→L2 interface.
+
+The no-movement skeleton mocks the rover client through the interface L2 already uses; it does **not** require new L1 action-result protocols or modifications to L2.
+
+**POC 2** may add L2 intelligence later; [#11](https://github.com/jbruks/CognitiveOps/issues/11) is deferred and **not a prerequisite for POC 1**. The shared GPT service is designed for all three levels, but L2 integration is postponed.
+
+**Exception rule:** Any unavoidable L1/L2/VisionNN changes require separate justification, safety review and explicit operator approval before implementation.
+
+**Rationale:** protect the field-tested physical stack and demonstrate Mission First / Doctrine on Demand through L4 and L3 with minimal risk. This refines the timing of ADR-003, ADR-004 and ADR-009.
