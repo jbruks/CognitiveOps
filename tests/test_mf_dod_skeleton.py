@@ -289,7 +289,7 @@ class SkeletonL4SmokeTest(unittest.TestCase):
         self.assertEqual(mission.status, MissionStatus.ACTIVE)
         self.assertEqual(l2._blocked_cycles, 1)
         # L4 must explicitly stop on BLOCKED feedback from the real L3.
-        self.assertEqual(rover.stop_calls, 1)
+        self.assertEqual(rover.stop_calls, 0)
 
 
 
@@ -378,15 +378,43 @@ class SkeletonL4SmokeTest(unittest.TestCase):
             l4 = L4MissionPlanner(perception, l1, l3, mem, mission)
         l4.step()
         self.assertEqual(l4.last_navigation_result.status,
-                         NavigationStatus.BLOCKED)
-        self.assertEqual(l4.last_navigation_result.reason, "TACTICAL_HOLD")
-        self.assertEqual(mission.status, MissionStatus.ACTIVE)
+                         NavigationStatus.IN_PROGRESS)
+        self.assertEqual(l4.last_navigation_result.reason, "TEMPORARY_TACTICAL_HOLD")
+        self.assertEqual(l1.stop_calls, 0)
+        l4.step()
+        l4.step()
+        self.assertEqual(l4.last_navigation_result.status, NavigationStatus.BLOCKED)
+        self.assertEqual(l4.last_navigation_result.reason, "PERSISTENT_TACTICAL_HOLD")
         self.assertEqual(l1.stop_calls, 1)
-        self.assertEqual(l2.calls, 1)
+        self.assertEqual(l2.calls, 3)
         invalid = NavigationObjective("BAD-001", 99.0, 0.0)
         response = l3.step_objective(l1.get_state(), FakeObservation(), invalid)
         self.assertEqual(response.status, NavigationStatus.FAILED)
-        self.assertEqual(l2.calls, 1)
+        self.assertEqual(l2.calls, 3)
+
+
+    def test_l4_plan_selection_is_explicit_and_non_actuating(self):
+        from llm.llm_service import LLMService
+        from l3_models import NavigationObjective
+
+        l1 = MockL1()
+        mission = Mission(task=MissionTask.GOTO, target_lat=39.0,
+                          target_lon=-0.6, arrival_radius_m=5.0)
+        with patch.object(L4MissionPlanner.__init__.__globals__["os"], "makedirs"):
+            l4 = L4MissionPlanner(FakePerception(), l1, StubL3([18.0]),
+                                  object(), mission, llm_service=LLMService())
+        first = NavigationObjective("OBS-1", 39.0, -0.6, purpose="Inspect path")
+        second = NavigationObjective("OBS-2", 39.001, -0.601,
+                                     purpose="Inspect eastern side")
+        chosen, advice = l4.plan_from_intent(
+            "Inspect the authorized area", [first, second])
+        self.assertEqual(chosen, first)
+        self.assertEqual(advice.level, "L4")
+        self.assertEqual(l4.navigation_objective.objective_id, "GOTO-001")
+        self.assertEqual(l1.stop_calls, 0)
+        self.assertEqual(l1.commands, [])
+        with self.assertRaises(ValueError):
+            l4.plan_from_intent("Inspect", [first, first])
 
 
 if __name__ == "__main__":
