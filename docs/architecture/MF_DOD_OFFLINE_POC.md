@@ -85,3 +85,29 @@ python -m mf_dod_experiments_ab --backend openai --allow-api --model gpt-5.4
 ```
 
 Live mode makes two scenario calls, one initial plan call, one L3 review call and (only if requested) one L4 replan call: **four or five model requests total**. It does not invoke the real rover stack, does not validate actual navigation alternatives, and does not attach PDF doctrine. Tests use a mocked API client and require no network.
+
+## Doctrine on Demand controlled A/B — added, awaiting PDF sources and tests
+
+Entrypoint: `mf_dod_doctrine_experiment.py`. Same mission, restrictions and approved objectives in both arms. The only varied input is retrieved doctrine text (plus a mode marker indicating its presence). The model may change the order and reasoning, but it must not add or omit destinations.
+
+```bash
+cd ~/RoverGit-mf-dod
+source ~/RoverGit/.venv/bin/activate
+git pull --ff-only
+python -m unittest -v tests/test_mf_dod_doctrine_experiment.py
+
+# Empty-source baseline: intentionally reports NO_MATCHES_OR_SOURCES
+python -m mf_dod_doctrine_experiment
+
+# With one or more actual local PDF paths, requires pypdf
+python -m pip install pypdf
+python -m mf_dod_doctrine_experiment --pdf "/absolute/path/to/manual.pdf"
+
+# After verifying PDF extraction, optional billable GPT comparison
+python -m mf_dod_doctrine_experiment --backend openai --allow-api \
+  --model gpt-5.4 --pdf "/absolute/path/to/manual.pdf"
+```
+
+**Source inventory caveat:** GitHub code search on the default branch did not surface the referenced manuals; it does not conclusively inventory binary assets in the feature branch. No original PDF file has been downloaded, extracted or verified here. Operator must supply actual PDF paths before claiming Doctrine on Demand with genuine sources. Citation `PDF page N` refers to physical PDF page index, not printed manual pagination. Retrieval is basic lexical overlap; relevance and whether the doctrinal input *improves* planning require manual examination, not merely a changed objective order.
+
+The experiment reports `with_doctrine: null` if no relevant passages are found. It does not connect to hardware or execute navigation. Live use incurs one API call without matches or two with matches.
