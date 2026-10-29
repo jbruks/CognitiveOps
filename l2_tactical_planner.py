@@ -209,9 +209,9 @@ MOVE_BACKWARD
         if self.ultrasonic_only:
             # A front-only rangefinder cannot certify lateral or rear clearance.
             # No automatic reverse or detour. Limit steering by heading error.
-            if sensor["front_blocked"] or not sensor["front_distance_valid"]:
+            if sensor["front_blocked"]:
                 action = TacticalAction.HOLD
-                reason = "SONAR_BLOCKED_OR_INVALID"
+                reason = "SONAR_BLOCKED"
             else:
                 error = l3_task.get("heading_error_deg")
                 if error is None or abs(error) > 30:
@@ -238,10 +238,10 @@ MOVE_BACKWARD
             self.rover_client.execute_tactical_action(action)
             return action, reason, None, "ultrasonic_only"
 
-        if sensor["front_blocked"] or not sensor["front_distance_valid"]:
-            if not sensor["front_distance_valid"]:
-                self.rover_client.execute_tactical_action(TacticalAction.HOLD)
-                return TacticalAction.HOLD, "FRONT_SENSOR_INVALID", None, "safety_hold"
+        # The RA4M1 reports NO_ECHO (-1) as BLOCKED=0 in experimental mode.
+        # Measurement validity is telemetry, not a separate movement veto.
+        # Serial/malformed telemetry errors remain handled by the exception path above.
+        if sensor["front_blocked"]:
             self._blocked_cycles += 1
             if self._blocked_cycles >= 3 and not self._reverse_attempted:
                 self._reverse_attempted = True
