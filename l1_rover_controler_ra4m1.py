@@ -97,7 +97,7 @@ class L1RoverControler:
         return self.state
 
     def get_front_sensor_state(self) -> dict:
-        """Read HC-SR04 telemetry. Never treat a missing/invalid echo as clear."""
+        """Read HC-SR04 telemetry; interpret -1 as clear for this experimental policy."""
         response = self._request(
             "GET_DISTANCE",
             expected_prefixes=("DISTANCE_CM=",),
@@ -114,9 +114,11 @@ class L1RoverControler:
             raise RuntimeError(f"Malformed HC-SR04 telemetry: {response}") from exc
 
         valid = distance_cm > 0
-        blocked = blocked_raw == "1"
-        if not valid and not blocked:
-            raise RuntimeError("Invalid HC-SR04 echo reported as unblocked")
+        # Experimental policy: -1 is NO_ECHO, treated as CLEAR at L1.
+        # This normalizes older Arduino telemetry that still reports BLOCKED=1.
+        blocked = False if distance_cm == -1.0 else blocked_raw == "1"
+        if distance_cm == -1.0 and blocked_raw == "1":
+            XLogger.log("L1-ULTRASONIC", "No echo (-1): overriding Arduino BLOCKED=1 to CLEAR in L1; RA4M1 interlock may still be active")
 
         XLogger.log(
             "L1-ULTRASONIC",
