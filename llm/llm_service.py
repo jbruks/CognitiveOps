@@ -121,7 +121,7 @@ class LLMService:
             instructions=("You are L4 mission planner. Order ALL supplied "
                           "pre-approved observation objectives according to intent "
                           "and context. Never invent, omit or modify destinations. "
-                          "Return only JSON: {\\\"objective_ids\\\":[...],\\\"reason\\\":\\\"...\\\"}."),
+                          "Return JSON with keys objective_ids (a list) and reason (a string)."),
             input=json.dumps({"intent": intent, "approved_objectives": options,
                               "context": context or {}}, default=str),
         )
