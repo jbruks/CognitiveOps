@@ -116,3 +116,20 @@ The experiment reports `with_doctrine: null` if no relevant passages are found. 
 ### Reference PDF discovery
 
 The Doctrine A/B experiment now discovers all `*.pdf` files in `docs/references/` by default. Explicit `--pdf` arguments override auto-discovery. Four manuals were confirmed on the operator's machine: `MCTP 3-01A (SECURED).pdf`, `MCRP 3-34.3 (W CH 1) (SECURED).pdf`, `ATP 3-20.98 Reconnaissance Platoon 2013.pdf`, and `fm_3-25.26_map_reading_and_land_navigation.pdf`. The secured files may require decryption or raise extraction errors; their content has not yet been inspected. To limit cost and avoid protected files, pass `--pdf docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf` explicitly. The generated PDF page labels are indices, not verified printed references.
+
+## Doctrine on Demand 2.0: cited observation advice (pending laptop validation)
+
+`mf_dod_doctrine_v2.py` adds three fully non-actuating runs: L4 without references, L4 with role-specific passages, and L3 with navigation-specific passages. Its output retains each recommendation's approved `objective_id`, a check, a limitation and a list of retrieved `source_ids`. The schema rejects invented IDs and invalid citation IDs. **The existence of a cited fragment does not verify that the claim it supports is correct:** `attribution_status=IDS_VALIDATED_CONTENT_NOT_VERIFIED`. Human comparison and citation review are still required.
+
+```bash
+cd ~/RoverGit-mf-dod
+source ~/RoverGit/.venv/bin/activate
+git pull --ff-only
+python -m unittest -v tests/test_mf_dod_doctrine_v2.py
+python -m mf_dod_doctrine_v2 --pdf docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf
+# Opt-in, billable: three real model calls with the current implementation
+python -m mf_dod_doctrine_v2 --backend openai --allow-api --model gpt-5.4 \
+ --pdf docs/references/fm_3-25.26_map_reading_and_land_navigation.pdf
+```
+
+The retrieval currently uses role-specific lexical queries, **not embedding-based semantic search**. The richer schema makes doctrine's proposed effect inspectable; it does not establish decision quality on its own. All objective coordinates are lab placeholders. The new experiment does not modify L3/L4 live physical loops.
