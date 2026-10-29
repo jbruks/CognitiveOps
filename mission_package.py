@@ -89,9 +89,6 @@ class MissionPackage:
                 raise ValueError("Unsupported feature or missing kind")
         if not self.authorized:
             raise ValueError("Authorized polygon required")
-        for poi_id, point in self.pois.items():
-            # Other POIs may be documented outside; only approved ones pass gate.
-            pass
         self.document_sources = manifest.get("supporting_documents", [])
         if not isinstance(self.document_sources, list):
             raise ValueError("supporting_documents must be a list")
@@ -124,8 +121,9 @@ class MissionPackage:
 
     def approve(self, proposals, approved_ids):
         """Explicit operator gate. No caller may infer approval from GPT text."""
-        chosen = set(approved_ids)
-        if not chosen or len(chosen) != len(list(approved_ids)):
+        ids = list(approved_ids)
+        chosen = set(ids)
+        if not chosen or len(chosen) != len(ids):
             raise ValueError("Explicit unique approval IDs required")
         if len({p.objective_id for p in proposals}) != len(proposals):
             raise ValueError("Duplicate proposals")
