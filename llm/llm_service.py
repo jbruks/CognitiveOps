@@ -85,6 +85,62 @@ class LLMService:
                                provider="openai", model=self.model,
                                request_id=getattr(response, "id", None))
 
+    def plan_objectives(self, intent, approved_objectives, context=None):
+        """Return a validated ordering of approved objective IDs.
+
+        GPT may reorder the supplied options but may not add destinations,
+        omit any required objective, or issue physical commands.
+        """
+        if not isinstance(intent, str) or not intent.strip():
+            raise ValueError("Mission intent required")
+        if not isinstance(approved_objectives, (list, tuple)):
+            raise TypeError("approved_objectives must be a sequence")
+        options = list(approved_objectives)
+        if not options or any(not isinstance(x, dict)
+                              or not isinstance(x.get("objective_id"), str)
+                              or not x["objective_id"] for x in options):
+            raise ValueError("Approved objectives must contain IDs")
+        ids = [x["objective_id"] for x in options]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate objective IDs")
+        if context is not None and not isinstance(context, dict):
+            raise TypeError("context must be a dictionary")
+        if self.backend == "stub":
+            return InferenceResult(
+                level="L4",
+                output={"objective_ids": ids, "reason": "Offline approved order"},
+                provider="stub", model="deterministic",
+            )
+        if not self.model:
+            raise ValueError("OpenAI model must be configured")
+        if self.client is None:
+            from openai import OpenAI
+            self.client = OpenAI(timeout=self.timeout_s)
+        response = self.client.responses.create(
+            model=self.model,
+            instructions=("You are L4 mission planner. Order ALL supplied "
+                          "pre-approved observation objectives according to intent "
+                          "and context. Never invent, omit or modify destinations. "
+                          "Return only JSON: {\\\"objective_ids\\\":[...],\\\"reason\\\":\\\"...\\\"}."),
+            input=json.dumps({"intent": intent, "approved_objectives": options,
+                              "context": context or {}}, default=str),
+        )
+        try:
+            output = json.loads(response.output_text)
+        except (ValueError, TypeError) as exc:
+            raise ValueError("Invalid plan JSON") from exc
+        if (not isinstance(output, dict)
+                or set(output) != {"objective_ids", "reason"}
+                or not isinstance(output["objective_ids"], list)
+                or len(output["objective_ids"]) != len(ids)
+                or set(output["objective_ids"]) != set(ids)
+                or not isinstance(output["reason"], str)):
+            raise ValueError("Plan must order exactly the approved objectives")
+        return InferenceResult(
+            "L4", output, "openai", self.model,
+            getattr(response, "id", None),
+        )
+
     # Legacy methods: keep the existing behavior to avoid a surprise change
     # for previously configured call sites.
     def decide_tactical(self, prompt, image_bytes=None):
