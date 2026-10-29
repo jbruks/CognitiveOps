@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "site_id": "SYNTHETIC-LAB",
+  "intent": "Inspect authorized observation points; report conditions that cannot be verified.",
+  "crs": "EPSG:4326",
+  "geojson": "site.geojson",
+  "supporting_documents": [],
+  "data_status": "SYNTHETIC_NOT_A_REAL_SITE"
+}
