@@ -4,6 +4,7 @@ This increment verifies L4 with stub L3 and mock L1. Real L3 and L2
 integration is the next step of Issue #5. No device or API calls occur.
 """
 from dataclasses import dataclass
+from types import SimpleNamespace
 import sys
 import types
 import unittest
@@ -18,6 +19,8 @@ sys.modules["perception_module"] = perception_stub
 from l4_mission_planner import L4MissionPlanner
 from l3_models import GuidanceTask, GuidanceTaskType
 from l4_models import Mission, MissionTask, MissionStatus
+from rover_interfaces import RoverState, PerceptionState, TacticalAction
+from memory_system import MemorySystem
 
 
 @dataclass
@@ -32,7 +35,7 @@ class MockL1:
         self.commands = []
 
     def get_state(self):
-        return {"mock": True}
+        return RoverState(armed=False, mode="MOCK")
 
     def get_front_sensor_state(self):
         return {"front_distance_cm": None, "front_blocked": False}
@@ -84,6 +87,88 @@ class SkeletonL4SmokeTest(unittest.TestCase):
         l4.step()
         self.assertEqual(mission.status, MissionStatus.COMPLETED)
         self.assertEqual(l3.calls, 2)
+        self.assertEqual(l1.stop_calls, 1)
+        self.assertEqual(l1.commands, [])
+
+
+    def test_real_l3_guidance_with_simulated_phone_and_stub_l2(self):
+        """Exercise real L3 GPS math through real L4; no hardware or GPT."""
+        from lite_world_model.navigation_state import NavigationState
+
+        # L3 depends on the perception/world-model and phone imports, but
+        # receives synthetic readings. Avoid device discovery/network access.
+        import importlib
+        position_module = types.ModuleType("sensors.phone_position_service")
+        attitude_module = types.ModuleType("sensors.phone_attitude_service")
+        position_module.PhonePositionService = lambda: None
+        attitude_module.PhoneAttitudeService = lambda: None
+        with patch.dict(sys.modules, {
+            "sensors.phone_position_service": position_module,
+            "sensors.phone_attitude_service": attitude_module,
+        }):
+            from l3_task_planner import L3TaskPlanner
+
+        class PhoneFeed:
+            def __init__(self, samples):
+                self.samples = iter(samples)
+
+            def read(self):
+                return next(self.samples)
+
+        class StubL2:
+            def __init__(self):
+                self.tasks = []
+
+            def step(self, rover_state, result, l3_task, observability=None):
+                self.tasks.append(l3_task)
+                return TacticalAction.MOVE_FORWARD, "SIMULATED_PROGRESS", None, "stub"
+
+        def position(lat):
+            return SimpleNamespace(latitude=lat, longitude=-0.6,
+                                   horizontal_accuracy_m=1.0, gps_status=1,
+                                   fresh=True, available=True, age_s=0.0)
+
+        attitude = SimpleNamespace(heading_deg=0.0, fresh=True,
+                                   available=True, age_s=0.0)
+        l1 = MockL1()
+        l2 = StubL2()
+        memory = MemorySystem()
+        l3 = L3TaskPlanner(l2_planner=l2, perception_module=object(),
+                           memory_system=memory)
+        l3.phone_position = PhoneFeed([position(38.9998), position(39.0)])
+        l3.phone_attitude = PhoneFeed([attitude, attitude])
+        mission = Mission(task=MissionTask.GOTO, target_lat=39.0,
+                          target_lon=-0.6, arrival_radius_m=5.0)
+        observation = FakeObservation(
+            perception_state=PerceptionState(
+                obstacle_ahead=False, free_direction="center",
+                corridor_visible=True, confidence=1.0,
+            )
+        )
+
+        class ConstantPerception:
+            def observe_llm(self):
+                return observation
+
+        with patch.object(L4MissionPlanner.__init__.__globals__["os"], "makedirs"):
+            l4 = L4MissionPlanner(
+                perception_module=ConstantPerception(),
+                l1_rover_controler=l1, task_planner=l3,
+                memory_system=memory, mission=mission,
+            )
+        l4.step()
+        self.assertEqual(mission.status, MissionStatus.ACTIVE)
+        self.assertEqual(l3.last_guidance_task.task_type,
+                         GuidanceTaskType.FOLLOW_BEARING)
+        self.assertGreater(l3.last_guidance_task.distance_remaining_m, 15)
+        self.assertEqual(len(l2.tasks), 1)
+        self.assertEqual(l2.tasks[0]["task_type"], "FOLLOW_BEARING")
+        self.assertEqual(l1.commands, [])
+
+        l4.step()
+        self.assertEqual(l3.last_guidance_task.task_type, GuidanceTaskType.HOLD)
+        self.assertEqual(mission.status, MissionStatus.COMPLETED)
+        self.assertEqual(len(l2.tasks), 1)
         self.assertEqual(l1.stop_calls, 1)
         self.assertEqual(l1.commands, [])
 
