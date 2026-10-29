@@ -1,0 +1,52 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "authorized"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -0.61,
+              38.99
+            ],
+            [
+              -0.59,
+              38.99
+            ],
+            [
+              -0.59,
+              39.01
+            ],
+            [
+              -0.61,
+              39.01
+            ],
+            [
+              -0.61,
+              38.99
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "poi",
+        "poi_id": "OBSERVATION-A"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.6,
+          39
+        ]
+      }
+    }
+  ]
+}
