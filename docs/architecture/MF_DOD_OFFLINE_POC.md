@@ -66,3 +66,22 @@ The OpenAI demo makes **two requests**: one L4 ordering of approved goals and on
 PDF ingestion uses `pypdf` and labels extracted fragments `PDF page N` (1-based physical page order). This is **not a verified printed page citation** and is not OCR. Non-extractable scans and missing PDFs are not silently replaced with made-up citations. Operator must provide the actual PDF file paths; the documented two manuals have not yet been validated as local sources.
 
 For this specific demo, the L4 output is a validated order of previously approved objectives, **not arbitrary geographic mission planning**, and the navigation/observations are still synthetic. Do not take `completed: true` as full verified inspection: inaccessible and unverified zones remain in the output.
+
+## Experiments A/B: contextual planning and closed-loop simulated replanning
+
+File: `mf_dod_experiments_ab.py`. All geographic targets are synthetic LAB coordinates. It **never invokes motor control**.
+
+**Experiment A** asks L4 to order the same approved objectives under two different constraints: ordinary conditions, and eastward glare plus a temporary access limitation. We record order, reason and supplied constraints. A change in order is *not* required to pass tests; the experiment assesses context sensitivity of actual GPT advice, not guaranteed novelty.
+
+**Experiment B** asks L4 to plan, simulates a blockage at the first selected goal, asks L3 to recommend either `HOLD` or `REQUEST_L4_REPLAN`, then calls L4 again only on the latter. The replan may permute only remaining previously approved objectives. The blocked objective remains `INACCESSIBLE`, and pending items remain `UNVERIFIED`, because the experiment deliberately performs no additional navigation. It records `physical_actions: 0`.
+
+```bash
+cd ~/RoverGit-mf-dod
+git pull --ff-only
+python -m unittest -v tests/test_mf_dod_experiments_ab.py
+python -m mf_dod_experiments_ab
+# Requires existing OPENAI_API_KEY; may incur API charges.
+python -m mf_dod_experiments_ab --backend openai --allow-api --model gpt-5.4
+```
+
+Live mode makes two scenario calls, one initial plan call, one L3 review call and (only if requested) one L4 replan call: **four or five model requests total**. It does not invoke the real rover stack, does not validate actual navigation alternatives, and does not attach PDF doctrine. Tests use a mocked API client and require no network.
