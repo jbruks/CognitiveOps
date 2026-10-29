@@ -37,3 +37,32 @@ Expect **17 tests** (previous nine + four doctrine/mission + three memory + one 
 7. End-to-end physical validation; L2 retains an automatic reverse recovery after three block cycles, which must be separately safety-reviewed before field testing.
 
 The offline POC is a **system-integration demonstration, not a claim of autonomous site-inspection capability**. Test results must be obtained from the user's worktree before marking any related issue complete.
+
+## Cognitive live-GPT and local-document extension (pending workstation verification)
+
+The implementation also includes `mf_dod_cognitive_demo.py`, with **no hardware imports or calls**.
+
+```bash
+cd ~/RoverGit-mf-dod
+source ~/RoverGit/.venv/bin/activate
+git pull --ff-only
+
+# All offline tests, without an OpenAI request:
+python -m unittest -v tests/test_shared_inference_service.py tests/test_mf_dod_skeleton.py tests/test_mf_dod_mission.py tests/test_mf_dod_memory_reasoning.py tests/test_mf_dod_cognitive_demo.py
+
+# Offline cognitive integration with deterministic simulated L4/L3 advice:
+python -m mf_dod_cognitive_demo
+
+# Optional local PDFs (requires "pip install pypdf" in the virtualenv):
+python -m mf_dod_cognitive_demo --pdf "/absolute/path/manual.pdf"
+
+# Only after verifying credentials and accepting billable API requests:
+# export OPENAI_API_KEY=...  # NEVER commit credentials or post the key
+python -m mf_dod_cognitive_demo --backend openai --allow-api --model gpt-5.4 --pdf "/absolute/path/manual.pdf"
+```
+
+The OpenAI demo makes **two requests**: one L4 ordering of approved goals and one L3 evaluation of a **synthetic** blockage. No motor commands are possible via this module. The demo does not drive or connect to the physical rover; L3's actual `step()` and L4's physical `step()` remain distinct. The L3 request can only return `HOLD` or `REQUEST_L4_REPLAN`, and even a replan request is only logged.
+
+PDF ingestion uses `pypdf` and labels extracted fragments `PDF page N` (1-based physical page order). This is **not a verified printed page citation** and is not OCR. Non-extractable scans and missing PDFs are not silently replaced with made-up citations. Operator must provide the actual PDF file paths; the documented two manuals have not yet been validated as local sources.
+
+For this specific demo, the L4 output is a validated order of previously approved objectives, **not arbitrary geographic mission planning**, and the navigation/observations are still synthetic. Do not take `completed: true` as full verified inspection: inaccessible and unverified zones remain in the output.
