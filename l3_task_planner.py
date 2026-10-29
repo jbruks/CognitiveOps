@@ -15,8 +15,9 @@ import json
 
 from config import OPENAI_MODEL
 
-from l3_models import GuidanceTask, GuidanceTaskType
-from l4_models import MissionTask
+from l3_models import (GuidanceTask, GuidanceTaskType, NavigationObjective,
+                       NavigationResult, NavigationStatus)
+from l4_models import Mission, MissionTask
 from lite_world_model.navigation_state import NavigationState
 
 from rover_interfaces import TacticalAction
@@ -49,6 +50,50 @@ class L3TaskPlanner:
         self._blocked_cycles = 0
         self._block_escalated = False
         self._block_advice = None
+
+    def step_objective(self, rover_state, perception_result, objective: NavigationObjective):
+        """Run the existing GPS/Guidance/L2 path; expose cognitive feedback to L4.
+
+        The original step() API remains unchanged for GO_TO_POINT callers.
+        """
+        import math
+        if (not objective.objective_id
+                or not all(math.isfinite(x) for x in
+                           (objective.latitude, objective.longitude, objective.radius_m))
+                or not -90 <= objective.latitude <= 90
+                or not -180 <= objective.longitude <= 180
+                or objective.radius_m <= 0):
+            return NavigationResult(objective.objective_id, NavigationStatus.FAILED,
+                                    reason="INVALID_NAVIGATION_OBJECTIVE")
+
+        previous_id = getattr(self, "_active_objective_id", None)
+        if previous_id != objective.objective_id:
+            self._active_objective_id = objective.objective_id
+            self._blocked_cycles = 0
+            self._block_escalated = False
+            self._block_advice = None
+
+        legacy_mission = Mission(task=MissionTask.GOTO,
+                                 target_lat=objective.latitude,
+                                 target_lon=objective.longitude,
+                                 arrival_radius_m=objective.radius_m)
+        action = self.step(rover_state, perception_result, legacy_mission)
+        guidance = self.last_guidance_task
+        distance = guidance.distance_remaining_m
+
+        if (guidance.task_type == GuidanceTaskType.HOLD
+                and distance is not None and distance <= objective.radius_m):
+            status, reason = NavigationStatus.COMPLETED, None
+        elif guidance.task_type == GuidanceTaskType.HOLD:
+            status, reason = NavigationStatus.BLOCKED, "NAVIGATION_INPUT_UNAVAILABLE"
+        elif action == TacticalAction.STOP:
+            status, reason = NavigationStatus.BLOCKED, "TACTICAL_STOP"
+        elif action == TacticalAction.HOLD:
+            # A tactical HOLD is not proof of eventual failure.
+            status, reason = NavigationStatus.BLOCKED, "TACTICAL_HOLD"
+        else:
+            status, reason = NavigationStatus.IN_PROGRESS, None
+        return NavigationResult(objective.objective_id, status, distance, reason)
 
     #def step(self, rover_state, result, mission):
     def step(self, rover_state, result, mission):
