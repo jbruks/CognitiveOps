@@ -20,7 +20,8 @@ class LlombaiSimulationPackageTest(unittest.TestCase):
             self.assertEqual(len(pkg.pois), 4)
             self.assertEqual(len(pkg.authorized), 1)
             self.assertTrue(all(pkg.allowed(xy) for xy in pkg.pois.values()))
-            self.assertIn("SIMULATION_ONLY", pkg.site_id)
+            self.assertIn("SIM-ONLY", pkg.site_id)
+            self.assertIn("SIMULATION_ONLY", pkg.manifest["data_status"])
 
     def test_refuses_candidate_without_explicit_non_authorizing_flag(self):
         with tempfile.TemporaryDirectory() as work:
