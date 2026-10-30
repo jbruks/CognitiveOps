@@ -47,6 +47,34 @@
           39
         ]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "poi",
+        "poi_id": "OBSERVATION-B"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.604,
+          39.004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "kind": "poi",
+        "poi_id": "OBSERVATION-C"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.596,
+          38.996
+        ]
+      }
     }
   ]
 }
