@@ -9,7 +9,8 @@ from doctrine_service import DoctrineService, DoctrinePassage
 from llm.llm_service import LLMService
 from mission_package import MissionPackage
 from mf_dod_integrated_agent import (MissionJournal, prepare_proposals,
-                                     execute_agent, site_documents)
+                                     execute_agent, site_documents,
+                                     save_proposals, load_proposals)
 
 
 class FakeClient:
@@ -107,6 +108,25 @@ class IntegratedAgentTest(unittest.TestCase):
         self.assertEqual(sources["site:notes.txt"]["type"], "site")
         self.assertEqual(sources["doctrine:1"]["type"], "doctrine")
 
+
+
+    def test_persisted_proposals_can_be_reviewed_without_new_llm_call(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "goals.json"
+            proposals, _, _ = prepare_proposals(self.package, LLMService())
+            save_proposals(path, self.package, proposals)
+            self.assertEqual(proposals, load_proposals(path, self.package))
+            with self.assertRaises(FileExistsError):
+                save_proposals(path, self.package, proposals)
+
+    def test_saved_proposals_reject_changed_mission_geometry(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "goals.json"
+            proposals, _, _ = prepare_proposals(self.package, LLMService())
+            save_proposals(path, self.package, proposals)
+            self.package.pois["SAFE"] = (0.75, 0.75)
+            with self.assertRaises(ValueError):
+                load_proposals(path, self.package)
 
 if __name__ == "__main__":
     unittest.main()
