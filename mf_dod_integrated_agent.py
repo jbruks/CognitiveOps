@@ -4,6 +4,7 @@ Manifest + site text + doctrine -> L4 proposals -> explicit approval ->
 synthetic L3 feedback -> bounded L4 replan -> append-only mission journal.
 """
 import argparse
+import hashlib
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -118,6 +119,57 @@ def prepare_proposals(package, service, documents=(), doctrine=None):
     return result, sources, output["reason"]
 
 
+
+def _package_fingerprint(package):
+    """Bind a reviewed proposal set to the mission geometry and order."""
+    data = {"site_id": package.site_id, "intent": package.intent,
+            "pois": package.pois, "authorized": package.authorized,
+            "exclusions": package.exclusions,
+            "supporting_documents": package.document_sources}
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def save_proposals(path, package, proposals):
+    destination = Path(path)
+    if destination.exists():
+        raise FileExistsError("Refusing to overwrite reviewed proposal file")
+    data = {"schema_version": 1, "package_sha256": _package_fingerprint(package),
+            "proposals": [{"objective_id": p.objective_id, "poi_id": p.poi_id,
+                           "purpose": p.purpose, "question": p.question,
+                           "source_ids": list(p.source_ids)} for p in proposals]}
+    destination.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\\n",
+                           encoding="utf-8")
+
+
+def load_proposals(path, package):
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if (not isinstance(data, dict) or set(data) !=
+            {"schema_version", "package_sha256", "proposals"}
+            or data["schema_version"] != 1
+            or data["package_sha256"] != _package_fingerprint(package)
+            or not isinstance(data["proposals"], list)):
+        raise ValueError("Saved proposals do not match current Mission Package")
+    result = []
+    seen = set()
+    for row in data["proposals"]:
+        if not isinstance(row, dict) or set(row) != {"objective_id", "poi_id", "purpose", "question", "source_ids"}:
+            raise ValueError("Invalid saved proposal")
+        allowed_map = f'map:poi:{row["poi_id"]}'
+        refs = row["source_ids"]
+        if (not isinstance(refs, list) or allowed_map not in refs
+                or len(refs) != len(set(refs))
+                or any(not isinstance(x, str) or not x.startswith(("map:poi:", "site:", "doctrine:")) for x in refs)):
+            raise ValueError("Invalid source references")
+        candidate = package.candidate(row["objective_id"], row["poi_id"],
+                                      row["purpose"], row["question"])
+        if candidate.objective_id in seen:
+            raise ValueError("Duplicate saved objective ID")
+        seen.add(candidate.objective_id)
+        result.append(ProposedGoal(candidate.objective_id, candidate.poi_id,
+                                   candidate.purpose, candidate.question, tuple(refs)))
+    return result
+
+
 def execute_agent(package, proposals, approved_ids, service, journal=None,
                   simulate_block=False, max_replans=1):
     """Never call rover: only use synthetic NavigationResults after approval."""
@@ -182,6 +234,8 @@ def execute_agent(package, proposals, approved_ids, service, journal=None,
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest")
+    parser.add_argument("--save-proposals", help="Write proposed goals once for later review")
+    parser.add_argument("--load-proposals", help="Reuse reviewed goals; do not regenerate with GPT")
     parser.add_argument("--approve", nargs="*", default=[],
                         help="Explicit goal IDs approved ONLY for synthetic simulation")
     parser.add_argument("--block-first", action="store_true")
@@ -199,7 +253,16 @@ def main(argv=None):
     docs = site_documents(args.manifest, package)
     doctrine = DoctrineService.from_pdf_paths(args.pdf) if args.pdf else DoctrineService()
     service = LLMService(backend=args.backend, model=args.model)
-    goals, sources, reason = prepare_proposals(package, service, docs, doctrine)
+    if args.save_proposals and args.load_proposals:
+        parser.error("--save-proposals and --load-proposals are mutually exclusive")
+    if args.load_proposals:
+        goals = load_proposals(args.load_proposals, package)
+        sources = {f"map:poi:{pid}": {"type": "map", "poi_id": pid} for pid in package.pois}
+        reason = "Previously reviewed proposal set; no L4 proposal regeneration"
+    else:
+        goals, sources, reason = prepare_proposals(package, service, docs, doctrine)
+        if args.save_proposals:
+            save_proposals(args.save_proposals, package, goals)
     journal = MissionJournal(args.journal)
     report = execute_agent(package, goals, args.approve, service, journal, args.block_first)
     report["planning"] = {"reason": reason, "proposals": [
