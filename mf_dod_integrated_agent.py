@@ -137,7 +137,7 @@ def save_proposals(path, package, proposals):
             "proposals": [{"objective_id": p.objective_id, "poi_id": p.poi_id,
                            "purpose": p.purpose, "question": p.question,
                            "source_ids": list(p.source_ids)} for p in proposals]}
-    destination.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\\n",
+    destination.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
                            encoding="utf-8")
 
 
