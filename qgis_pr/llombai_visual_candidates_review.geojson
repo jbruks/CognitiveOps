@@ -1,0 +1,14 @@
+{
+  "type": "FeatureCollection",
+  "name": "llombai_visual_candidates_review",
+  "metadata": {"status": "VISUAL_CANDIDATES_NOT_AUTHORIZED", "source": "Operator-reviewed QGIS overlay", "crs": "EPSG:4326"},
+  "features": [
+    {"type":"Feature","properties":{"name":"RUNWAY_VISUAL_FOOTPRINT","category":"visual_surface","not_authorized":true},"geometry":{"type":"Polygon","coordinates":[[[-0.61622106,39.29967035],[-0.615023926,39.299689069],[-0.614975557,39.299498135],[-0.616206549,39.299496263],[-0.61622106,39.29967035]]]}},
+    {"type":"Feature","properties":{"name":"FACILITIES_VISUAL_AREA","category":"visual_site","not_authorized":true},"geometry":{"type":"Polygon","coordinates":[[[-0.615696256,39.299535573],[-0.615309303,39.299537445],[-0.615265771,39.299217348],[-0.615703511,39.299217348],[-0.615696256,39.299535573]]]}},
+    {"type":"Feature","properties":{"name":"POND_VISUAL_AREA","category":"potential_hazard","not_authorized":true},"geometry":{"type":"Polygon","coordinates":[[[-0.614358851,39.299801383],[-0.614286297,39.299881874],[-0.614133935,39.299913697],[-0.613954969,39.299889362],[-0.613841302,39.299812614],[-0.61387516,39.2997003],[-0.614104913,39.299606705],[-0.614310482,39.299629168],[-0.614383035,39.299713403],[-0.614358851,39.299801383]]]}},
+    {"type":"Feature","properties":{"name":"RUNWAY_WEST_CANDIDATE","category":"observation","not_authorized":true},"geometry":{"type":"Point","coordinates":[-0.615979215,39.299558036]}},
+    {"type":"Feature","properties":{"name":"RUNWAY_EAST_CANDIDATE","category":"observation","not_authorized":true},"geometry":{"type":"Point","coordinates":[-0.615152104,39.299548676]}},
+    {"type":"Feature","properties":{"name":"FACILITIES_CANDIDATE","category":"observation","not_authorized":true},"geometry":{"type":"Point","coordinates":[-0.615476176,39.299370845]}},
+    {"type":"Feature","properties":{"name":"ACCESS_SOUTH_CANDIDATE","category":"observation","not_authorized":true},"geometry":{"type":"Point","coordinates":[-0.614835286,39.299200501]}}
+  ]
+}
