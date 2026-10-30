@@ -33,12 +33,13 @@ def validate(package, proposals, service, approved_ids, prior_events=(),
                 or not isinstance(value["source_ref"], str)
                 or not value["source_ref"].strip()):
             raise ValueError("Operator evidence requires description, observed and source_ref")
+    id_to_poi = {p.objective_id: p.poi_id for p in proposals}
     blocked_history = [
-        row["poi_id"] for row in prior_events
+        row.get("poi_id", id_to_poi.get(row.get("objective_id"))) for row in prior_events
         if isinstance(row, dict)
         and row.get("event") == "L3_NAVIGATION_FEEDBACK"
         and row.get("status") == "BLOCKED"
-        and row.get("poi_id") in package.pois
+        and row.get("poi_id", id_to_poi.get(row.get("objective_id"))) in package.pois
     ][-10:]
     hits = doctrine.retrieve(
         "inspection observation terrain navigation access uncertainty", limit=3)
