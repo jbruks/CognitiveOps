@@ -33,7 +33,7 @@ class CognitiveValidationTest(unittest.TestCase):
                      [[0,0],[4,0],[4,4],[0,4],[0,0]]]}},
                 *[{"type": "Feature", "properties": {"kind": "poi", "poi_id": pid},
                    "geometry": {"type": "Point", "coordinates": point}}
-                  for pid, point in [("A",[1,1]),("B",[2,2]),("C",[3,3])]]})
+                  for pid, point in [("A",[1,1]),("B",[2,2]),("C",[3,3])]]]})
         self.proposals, _, _ = prepare_proposals(self.package, LLMService())
         self.ids = [p.objective_id for p in self.proposals]
 
