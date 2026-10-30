@@ -152,3 +152,27 @@ python -m mf_dod_mission_package_demo examples/mission_package_lab/manifest.json
 ```
 
 **Remaining #13 scope:** actual operator-supplied georeferenced map and site-specific documents, ingestion/provenance of supporting documents and doctrine into the L4 request, quality/grounding evaluation and full end-to-end approval workflow UX. The demo does not claim completion of Issue #13. Never use the synthetic coordinates for physical motion.
+
+## MF-DoD integrated three-block agent lab (Issue #13)
+
+A single **non-actuating** entrypoint, `mf_dod_integrated_agent.py`, joins:
+1. **Mission Context:** versioned mission manifest and GeoJSON POIs/authorized polygons; optional local UTF-8 site `.txt` documents distinct from operator-supplied PDF doctrine. L4 proposes map-bound candidate IDs; source IDs are validated, not semantically adjudicated.
+2. **Cognitive Memory:** optional append-only JSONL event journal with sequence numbers, UTC timestamps and replay via `MissionJournal(path)`.
+3. **Feedback & Agentic Loop:** explicit operator-selected approval IDs are deterministically validated before any **synthetic** navigation; L3 reviews synthetic blockage, optionally requests bounded L4 reordering of only remaining approved objectives; unresolved items remain `UNVERIFIED` and blocked ones `INACCESSIBLE`.
+
+This is **not** the live hardware main loop. It never imports camera, motor, serial, L2 or L3 physical execution. A demo cannot grant field movement approval; `--approve` only enables synthetic offline feedback. The sample manifest and coordinates are entirely invented; do not reuse them for real navigation.
+
+```bash
+cd ~/RoverGit-mf-dod
+source ~/RoverGit/.venv/bin/activate
+git pull --ff-only
+python -m unittest -v tests/test_mf_dod_integrated_agent.py
+python -m mf_dod_integrated_agent examples/mission_package_lab/manifest.json
+python -m mf_dod_integrated_agent examples/mission_package_lab/manifest.json \
+  --approve OBS-OBSERVATION-A --block-first --journal /tmp/mf_dod_mission_journal.jsonl
+# Explicit billable opt-in only after offline validation:
+python -m mf_dod_integrated_agent examples/mission_package_lab/manifest.json \
+  --backend openai --allow-api --model gpt-5.4
+```
+
+Known gaps: no real georeferenced airfield package submitted; site-specific PDFs are not yet ingested by this entrypoint (only local text); doctrine relevance and citation meaning need review; no real sensor results; no automatic real-world approval; no physical agent-loop integration. Preserve existing main and frozen L1/L2/VisionNN. Tests must pass before checkpoint tagging.
