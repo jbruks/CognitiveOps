@@ -84,6 +84,7 @@ def main(argv=None):
     p.add_argument("--mission", required=True, help="Manifest JSON or package directory")
     p.add_argument("--manual", action="store_true", required=True)
     p.add_argument("--camera", action="store_true", help="Opt-in live camera/VisionNN and non-actuating L2 advice")
+    p.add_argument("--ultrasonic", action="store_true", help="Opt-in RA4M1 GET_DISTANCE diagnostic only; requires motor/servo power disconnected")
     p.add_argument("--model", default="gpt-5.4", help="GPT model when --allow-api is set")
     p.add_argument("--allow-api", action="store_true", help="Explicitly enable GPT L4/L3 calls")
     p.add_argument("--cycles", type=int, default=0, help="0 means until Ctrl+C")
@@ -103,7 +104,7 @@ def main(argv=None):
     output.parent.mkdir(parents=True, exist_ok=True)
     service = LLMService(backend="openai" if args.allow_api else "stub",
                          model=args.model if args.allow_api else None)
-    print("MANUAL_SHADOW / NO L1 OR SERIAL; ultrasonic NOT READ")
+    print("MANUAL_SHADOW / NO L1 ARM or actuator commands; sonar optional GET_DISTANCE only")
     print("IMPORTANT: Physically isolate motor and servo power before moving manually.")
     print("Mission candidate geometry is simulation-only; this is not movement authorization.")
     goals, _, rationale = prepare_proposals(pkg, service,
@@ -138,8 +139,15 @@ def main(argv=None):
     if args.camera:
         from mf_dod_shadow_perception import ShadowCameraObserver
         camera = ShadowCameraObserver()
+    sonar = None
     current = 0
     try:
+        if args.ultrasonic:
+            if input("Motor AND servo power physically disconnected? Type DISCONNECTED: ").strip() != "DISCONNECTED":
+                print("Ultrasonic port NOT opened; stopping")
+                return
+            from mf_dod_shadow_sonar import ReadOnlySonar
+            sonar = ReadOnlySonar().open()
         step = 0
         while not args.cycles or step < args.cycles:
             step += 1
@@ -157,6 +165,18 @@ def main(argv=None):
                 row["perception_status"] = observation.status
                 row["tactical_proposal"] = observation.tactical
                 print("[CAMERA]", observation.status, "proposed:", observation.tactical["action"], "(NOT EXECUTED)")
+            if sonar is not None:
+                sample = sonar.read()
+                row["ultrasonic"] = sample
+                # Invalid/no-echo is UNKNOWN, never interpreted as a clear corridor.
+                if (sample["front_distance_valid"] is not True
+                        or sample["front_blocked"] is not False):
+                    row["tactical_proposal"] = {
+                        "action": "HOLD", "reason": "SONAR_UNCERTAIN_OR_BLOCKED",
+                        "source": "SHADOW_GUARD", "executable": False}
+                    print("[SONAR] UNKNOWN/BLOCKED -> HOLD advisory")
+                else:
+                    print("[SONAR]", sample["front_distance_cm"], "cm; diagnostic only")
             log_event(output, "OBSERVATION", **row)
             # Arrival is not certified: an operator must explicitly mark a goal
             # reached before the next goal can be observed.
@@ -190,6 +210,8 @@ def main(argv=None):
         print("\nStopped by operator (no actuator commands).")
         log_event(output, "INTERRUPTED")
     finally:
+        if sonar is not None:
+            sonar.close()
         if camera is not None:
             camera.close()
         log_event(output, "END", inspection_status="UNVERIFIED")
