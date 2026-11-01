@@ -83,6 +83,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--mission", required=True, help="Manifest JSON or package directory")
     p.add_argument("--manual", action="store_true", required=True)
+    p.add_argument("--camera", action="store_true", help="Opt-in live camera/VisionNN and non-actuating L2 advice")
     p.add_argument("--model", default="gpt-5.4", help="GPT model when --allow-api is set")
     p.add_argument("--allow-api", action="store_true", help="Explicitly enable GPT L4/L3 calls")
     p.add_argument("--cycles", type=int, default=0, help="0 means until Ctrl+C")
@@ -102,7 +103,7 @@ def main(argv=None):
     output.parent.mkdir(parents=True, exist_ok=True)
     service = LLMService(backend="openai" if args.allow_api else "stub",
                          model=args.model if args.allow_api else None)
-    print("MANUAL_SHADOW / NO L1 OR SERIAL; no camera or ultrasonic in stage 1")
+    print("MANUAL_SHADOW / NO L1 OR SERIAL; ultrasonic NOT READ")
     print("IMPORTANT: Physically isolate motor and servo power before moving manually.")
     print("Mission candidate geometry is simulation-only; this is not movement authorization.")
     goals, _, rationale = prepare_proposals(pkg, service,
@@ -133,6 +134,10 @@ def main(argv=None):
               model=args.model if args.allow_api else "stub",
               no_actuator_interface=True)
     phone_gps, phone_heading = PhonePositionService(), PhoneAttitudeService()
+    camera = None
+    if args.camera:
+        from mf_dod_shadow_perception import ShadowCameraObserver
+        camera = ShadowCameraObserver()
     current = 0
     try:
         step = 0
@@ -146,6 +151,12 @@ def main(argv=None):
                    "navigation": state, "movement_source": "HUMAN_OPERATOR"}
             print(f"[{step}] {target.objective_id}: {state['status']} "
                   f"distance={state['distance_m']} heading_error={state['heading_error_deg']}")
+            if camera is not None:
+                observation = camera.observe(state)
+                row["perception"] = observation.visual
+                row["perception_status"] = observation.status
+                row["tactical_proposal"] = observation.tactical
+                print("[CAMERA]", observation.status, "proposed:", observation.tactical["action"], "(NOT EXECUTED)")
             log_event(output, "OBSERVATION", **row)
             # Arrival is not certified: an operator must explicitly mark a goal
             # reached before the next goal can be observed.
@@ -179,6 +190,8 @@ def main(argv=None):
         print("\nStopped by operator (no actuator commands).")
         log_event(output, "INTERRUPTED")
     finally:
+        if camera is not None:
+            camera.close()
         log_event(output, "END", inspection_status="UNVERIFIED")
         print("Shadow log:", output)
 
