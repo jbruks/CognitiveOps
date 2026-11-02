@@ -16,7 +16,7 @@ The project combines a physical rover platform, an experimental **Mission First 
 
 ---
 
-## The idea: give the rover a mission, not a list of motor commands
+## The idea: give the rover a mission and a doctrine (not a list of motor commands)
 
 A conventional navigation stack may receive a destination and calculate movement towards it. CognitiveOps explores a higher-level problem:
 
@@ -32,6 +32,42 @@ For a representative **civilian airfield visual-inspection experiment**, an oper
 L4 then proposes a mission-level plan. L3 manages the status of individual navigation tasks and can escalate problems back to L4. Lower layers provide navigation calculations, perception, constrained action selection, and—for the legacy physical rover—actuator interfaces.
 
 **Agreed next PoC step:** L4 specifies *what* to achieve; **L3 will select and calculate geographic destinations** from the georeferenced map, including proposed new points where useful. Small deterministic functions will convert map positions to GPS coordinates and calculate distances, bearings, and waypoint geometry. **This is planned, not yet implemented**: the current code still resolves previously documented POIs through the Mission Package after approval. No map or model output grants site-access permission.
+
+---
+
+## Doctrine-grounded decision-making
+
+**CognitiveOps is intended to reason from both a mission and a doctrine—not just react to sensor data.** The operator defines *what must be achieved*; doctrine provides the reference principles, procedures, priorities, and constraints that inform *how the mission should be approached*. This is central to the research value of the L4/L3 agents.
+
+The reasoning flow is deliberately explicit:
+
+```text
+    OPERATOR MISSION              DOCTRINE / MANUALS
+     (intent, goals)          (principles, procedures)
+              \                    /
+               \                  /
+                MISSION PACKAGE + MAP
+                         |
+                         v
+                  GPT L4 REASONING
+              Objectives, priorities, plan
+                         |
+                         v
+                  GPT L3 REASONING
+            Navigation choices, exceptions
+                         |
+                         v
+                L2 / L1 + FEEDBACK
+                         |
+                         v
+               LOGGED DECISION CYCLE
+```
+
+**For example**, a manual may emphasize checking terrain accessibility and observation conditions before attempting an inspection. L4 can use relevant retrieved passages to justify mission objectives and priorities; L3 can use the applicable guidance, together with the map and live observations, when evaluating a route or requesting replanning. The doctrine is **context for decisions**, not a direct motor command or permission to operate.
+
+The existing **DoctrineService** can retrieve excerpts from reference material, including operator-supplied PDFs, and make them available to mission planning with source identifiers. Structured traces let an experimenter inspect the mission input, reference material, model response, and resulting event. **The current PoC has demonstrated doctrine retrieval and L4/L3 replanning separately; it has not yet established that retrieved passages consistently influence decisions correctly or that citations prove doctrinal compliance.** Testing the quality and causal contribution of doctrine-grounded reasoning is an explicit research objective.
+
+The architecture retains **one sequential, discrete decision loop** so the doctrinal context, LLM decisions, and sensor/control feedback can be examined cycle by cycle—without introducing a production-scale multi-agent framework.
 
 ---
 
