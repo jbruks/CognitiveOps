@@ -55,7 +55,7 @@ def run(args):
         if ds.crs is None:
             raise ValueError("Map CRS missing; use a georeferenced raster")
         # Preview is resized, so the model's coordinate system is preview pixels.
-        arr=ds.read(out_shape=(min(ds.count,3),
+        arr=ds.read(indexes=list(range(1,min(ds.count,3)+1)),out_shape=(min(ds.count,3),
                 max(1,round(ds.height*min(1,1024/max(ds.width,ds.height)))),
                 max(1,round(ds.width*min(1,1024/max(ds.width,ds.height))))),
                 masked=True)
