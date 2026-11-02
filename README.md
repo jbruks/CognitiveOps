@@ -31,7 +31,7 @@ For a representative **civilian airfield visual-inspection experiment**, an oper
 
 L4 then proposes a mission-level plan. L3 manages the status of individual navigation tasks and can escalate problems back to L4. Lower layers provide navigation calculations, perception, constrained action selection, and—for the legacy physical rover—actuator interfaces.
 
-**The LLM does not invent GPS coordinates or confer site-access permission.** In the current implementation, it selects documented POIs; the Mission Package resolves those POIs into coordinates when an operator approves the proposal.
+**Agreed next PoC step:** L4 specifies *what* to achieve; **L3 will select and calculate geographic destinations** from the georeferenced map, including proposed new points where useful. Small deterministic functions will convert map positions to GPS coordinates and calculate distances, bearings, and waypoint geometry. **This is planned, not yet implemented**: the current code still resolves previously documented POIs through the Mission Package after approval. No map or model output grants site-access permission.
 
 ---
 
@@ -53,8 +53,8 @@ L4 then proposes a mission-level plan. L3 manages the status of individual navig
                          ▼
               ┌─────────────────────┐
               │ L3 — TASK AGENT     │
+              │ Map / GPS targets   │
               │ Monitor progress    │
-              │ Interpret blockers  │
               │ Hold / escalate     │
               └──────────┬──────────┘
                          │ guidance + task context
@@ -86,7 +86,7 @@ L4 then proposes a mission-level plan. L3 manages the status of individual navig
 | Layer | Responsibility | Current research focus |
 | --- | --- | --- |
 | **L4 — Mission** | Interpret mission intent; propose goals linked to sources and mapped POIs; prioritize and replan within approved objectives | **GPT reasoning, doctrine/context retrieval, Mission Package, explainable replanning** |
-| **L3 — Task / Navigation** | Receive an objective; track navigation feedback; distinguish progress from failure; hold, request operator review, or escalate to L4 | **GPT-assisted exception handling and mission-aware task decisions** |
+| **L3 — Task / Navigation** | Receive an L4 objective; select destinations using georeferenced map data; calculate/validate GPS, bearing, distance and optional waypoints; monitor feedback and escalate exceptions | **Next PoC step: L3-generated destinations; synthetic GPT exception handling already tested** |
 | **L2 — Tactical** | Combine navigation guidance with perception and propose constrained local actions | Existing deterministic tactical logic and camera/VisionNN integration; non-actuating shadow proposals |
 | **L1 — Control** | Interface with the rover's low-level controller and actuators | Existing Raspberry Pi → Renesas RA4M1 physical stack; **not connected to the new cognitive shadow agent** |
 
@@ -105,9 +105,13 @@ The current experimental implementation can:
 
 **Important boundary:** Doctrine excerpts are contextual input, not independent authority. Source IDs and retrieved excerpts provide traceability, but they do **not** prove that a doctrinal citation substantively supports a specific decision. The usefulness of doctrine grounding is still being evaluated.
 
-### L3: task cognition and escalation
+### L3: map reading, destination calculation, and task cognition
 
-L3 bridges mission intent and the conditions reported by navigation and perception. In the demonstrated simulation, a blocked navigation objective produced a structured L3 decision:
+**Minimal planned extension:** L4 hands L3 a mission-level task, such as “find an observation position for the facilities.” L3 reasons over the existing georeferenced map and optional operator POIs, proposes a position or intermediate waypoints, and uses a small set of deterministic calculations to obtain WGS84 GPS coordinates, distance, and bearing. The calculated output, source map position, model decision, and validation result will be logged against the same sequential cycle. L3 should reuse its chosen destination across cycles unless there is a relevant event; no continuous LLM calls are required.
+
+This is deliberately **not** a new agent hierarchy, service platform, or production route planner. A correctly converted coordinate does not establish terrain traversability; the map and live sensors may leave substantial uncertainty.
+
+In the existing implementation, L3 bridges mission intent and the conditions reported by navigation and perception. In the demonstrated simulation, a blocked navigation objective produced a structured L3 decision:
 
 ```text
 L3: REQUEST_L4_REPLAN
@@ -129,12 +133,12 @@ Mission order + doctrine + site context + mapped POIs
                          │
                  OPERATOR APPROVAL
                          │
-             POI → verified data lookup
-                 (lat, lon, radius)
-                         │
                  L4 objective order
                          │
                  L3 navigation task
+              Map reading / target proposal
+              GPS conversion + validation
+              Bearing / distance / waypoints
                          │
         navigation/perception feedback
                    ┌─────┴─────┐
@@ -150,7 +154,7 @@ Mission order + doctrine + site context + mapped POIs
                      Journal + report
 ```
 
-**Coordinates and routes are different things.** The package contains map-derived target coordinates. The deterministic guidance layer can compute distance, bearing, and heading error from live GPS/attitude. A complete obstacle-aware route across terrain is **not** demonstrated by the L4/L3 simulation.
+**Coordinates and routes are different things.** Currently, the Mission Package resolves map-derived POI coordinates. The next PoC iteration moves target selection and coordinate calculation to L3, using the existing georeferenced map. Basic deterministic navigation computes distance, bearing, and heading error from live GPS/attitude; a complete obstacle-aware route across terrain is **not** demonstrated by the L4/L3 simulation.
 
 Likewise, **navigation arrival is not inspection success**: a candidate arrival must not be reported as verified visual evidence without an appropriate observation and assessment.
 
@@ -243,12 +247,13 @@ The live shadow entry point is `mf_dod_live_shadow.py`. It never calls the exist
 
 ## Research roadmap
 
-1. **Validated real-time observation:** verify GPS/heading, camera/VisionNN, ultrasonic telemetry and timing in a stationary, de-energized physical setup.
-2. **Sensor-to-cognition integration:** convert meaningful navigation/perception incidents into bounded L3 reviews, and route justified replanning requests to L4.
-3. **Supervised manual field walkthrough:** observe real sensor changes while the human physically moves the rover, with **zero motor/servo power** and complete decision logs.
-4. **Mission planning research:** test stronger doctrine attribution, mission memory, spatial reasoning, and the distinction between target selection and route planning.
-5. **Simulation expansion:** visualize the L4 → L3 → L2/L1 architecture in Gazebo without prematurely replacing the project's control stack.
-6. **Real test** With motors on :-)
+1. **Small L3 geospatial extension:** give L3 the georeferenced map and minimal coordinate/bearing calculations; allow model-proposed destinations beyond preset POIs, validate proposals, and record each input, LLM decision, and output in the existing **sequential, discrete debugging loop**. Keep L4 responsible for mission objectives and replanning; avoid new agents or production architecture.
+2. **Validated real-time observation:** verify GPS/heading, camera/VisionNN, ultrasonic telemetry and timing in a stationary, de-energized physical setup.
+3. **Sensor-to-cognition integration:** convert meaningful navigation/perception incidents into bounded L3 reviews, and route justified replanning requests to L4.
+4. **Supervised manual field walkthrough:** observe real sensor changes while the human physically moves the rover, with **zero motor/servo power** and complete decision logs.
+5. **Mission planning research:** test stronger doctrine attribution, mission memory, spatial reasoning, and the distinction between target selection and route planning.
+6. **Simulation expansion:** visualize the L4 → L3 → L2/L1 architecture in Gazebo without prematurely replacing the project's control stack.
+7. **Supervised powered rover trial:** only after stationary sensor checks, verified operating permissions, actuator/STOP behavior, watchdog and emergency-stop review; begin with a bounded single-goal test.
 
 See [Issue #16](https://github.com/jbruks/CognitiveOps/issues/16) for the current manual-shadow validation and [MF-DoD iteration closeout](docs/architecture/MF_DOD_ITERATION_CLOSEOUT_20261030.md) for prior results and limitations.
 
