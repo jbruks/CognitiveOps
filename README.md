@@ -6,7 +6,7 @@
 
 CognitiveOps is an experimental cognitive autonomy architecture built around a real unmanned ground vehicle (UGV). Its research question is straightforward:
 
-> **Can an AI system understand a mission, use relevant doctrine and geographic context, decompose intent into objectives, supervise navigation, and adapt when the environment changes—without giving an LLM unchecked control of the motors?**
+> **Can an AI system understand a mission, use relevant doctrine and geographic context, decompose intent into objectives, supervise navigation, and adapt when the environment changes?**
 
 Rather than using an LLM merely to choose the next steering command, CognitiveOps places reasoning where it can have a greater effect: **L4 mission cognition and L3 task/navigation cognition**. These layers work with structured contracts, map-derived objectives, memory, and feedback from lower-level perception and control.
 
