@@ -68,7 +68,7 @@ def run(args):
             if high<=low: high=low+1
             channels.append(np.uint8(np.clip((raw-low)/(high-low)*255,0,255)))
         while len(channels)<3: channels.append(channels[-1])
-        img=Image.fromarray(np.stack(channels[:3],axis=-1).transpose(1,2,0),"RGB")
+        img=Image.fromarray(np.stack(channels[:3],axis=-1),"RGB")
         buff=BytesIO();img.save(buff,format="JPEG",quality=85)
         data="data:image/jpeg;base64,"+base64.b64encode(buff.getvalue()).decode()
         context={"mission":args.mission,"map_preview_size":[img.width,img.height],
