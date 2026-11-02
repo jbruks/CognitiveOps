@@ -1,9 +1,9 @@
-"""MF-DoD sequential mission runner. Non-actuating PoC integration.
+"""MF-DoD sequential mission runner. non-actuating shadow and explicitly gated motor mode.
 
 Consumes approved L4/L3 map-recon journal; retains target order; performs
 one observable discrete GPS/heading/tactical advisory cycle per iteration.
-No legacy L1/L2.step imports, no ARM, STOP or motor commands. A future
-powered adapter requires separate field-safety verification.
+Motor mode reuses L1 with one-time enablement, bounded actions and STOP.
+It never calls L2.step() or its automatic reverse recovery.
 """
 import argparse
 from datetime import datetime, timezone
@@ -13,7 +13,6 @@ import time
 
 from l3_models import NavigationObjective
 from mf_dod_live_shadow import evaluate_position
-from mf_dod_geo_guidance_replay import replay
 
 
 def targets_from_journal(path):
@@ -66,11 +65,11 @@ def record(stream,kind,cycle,**payload):
 
 def run_cycles(targets, source_journal, stream, gps, attitude,
                observer=None, sonar=None, max_cycles=0, interval=3,
-               approval=input):
-    """Sequential, non-actuating mission; dependencies injectable for tests."""
+               approval=input, motor=None, action_seconds=1.0):
+    """Sequential mission with injectable motor, no per-maneuver approvals."""
     record(stream,"START",0,source_journal=str(source_journal),
            approved_objectives=[t.objective_id for t in targets],
-           physical_mode="SHADOW_ONLY")
+           physical_mode="MOTOR" if motor else "SHADOW_ONLY")
     idx=0
     cycle=0
     try:
@@ -95,8 +94,32 @@ def run_cycles(targets, source_journal, stream, gps, attitude,
                 if sample.get("front_distance_valid") is not True or sample.get("front_blocked") is not False:
                     proposed={"action":"HOLD","executable":False,"reason":"SONAR_BLOCKED_OR_INVALID"}
             row["tactical_proposal"]={**proposed,"executable":False}
+            selected="HOLD"
+            if motor is not None:
+                safe_range=(row.get("ultrasonic",{}).get("front_distance_valid") is True
+                            and row["ultrasonic"].get("front_blocked") is False)
+                safe_camera=(row.get("perception",{}).get("status")=="CAMERA_OBSERVED")
+                if nav["status"]=="OBSERVING_MANUAL_MOTION" and safe_range and safe_camera:
+                    if proposed.get("action") in ("MOVE_FORWARD","FORWARD_LEFT","FORWARD_RIGHT"):
+                        if nav["distance_m"]>target.radius_m:
+                            selected=proposed["action"]
+                row["motor_decision"]={"action":selected}
             record(stream,"CYCLE",cycle,**row)
-            print(f"[{cycle}] {target.objective_id} {nav['status']} distance={nav['distance_m']} bearing={nav['bearing_deg']} tactical={proposed['action']} (NOT EXECUTED)")
+            if motor is not None:
+                from rover_interfaces import TacticalAction
+                try:
+                    if selected!="HOLD":
+                        record(stream,"MOTOR_COMMAND",cycle,objective_id=target.objective_id,
+                               action=selected,physical_actions=1)
+                        motor.execute_tactical_action(TacticalAction[selected])
+                        time.sleep(action_seconds)
+                    else:
+                        motor.execute_tactical_action(TacticalAction.HOLD)
+                finally:
+                    motor.stop()
+                    record(stream,"INTER_CYCLE_STOP",cycle,objective_id=target.objective_id,
+                           physical_actions=1)
+            print(f"[{cycle}] {target.objective_id} {nav['status']} distance={nav['distance_m']} bearing={nav['bearing_deg']} tactical={proposed['action']} (motor={selected if motor else 'OFF'})")
             if (nav["status"]=="OBSERVING_MANUAL_MOTION" and nav["distance_m"] is not None
                     and nav["distance_m"]<=target.radius_m):
                 if approval("Candidate arrival only. Mark REACHED to advance (or Enter): ").strip()=="REACHED":
@@ -118,41 +141,58 @@ def main(argv=None):
     p.add_argument("--l3-journal",required=True,
                    help="Previously generated and offline-approved L4/L3 map journal")
     p.add_argument("--output",required=True,help="New append-only mission JSONL")
-    p.add_argument("--mode",choices=("shadow",),default="shadow",
-                   help="This iteration deliberately has no powered mode")
+    p.add_argument("--mode",choices=("shadow","motor"),default="shadow")
+    p.add_argument("--motor-enable",action="store_true")
+    p.add_argument("--serial",default="/dev/serial/by-id/usb-Arduino_UNO_WiFi_R4_CMSIS-DAP_3CDC7544B664-if01")
+    p.add_argument("--action-seconds",type=float,default=1.0)
     p.add_argument("--camera",action="store_true")
     p.add_argument("--ultrasonic",action="store_true",
                    help="Only GET_DISTANCE; requires motors/servos electrically isolated")
     p.add_argument("--cycles",type=int,default=0)
     p.add_argument("--interval",type=float,default=3)
     args=p.parse_args(argv)
-    if args.cycles<0 or args.interval<0:
+    if args.cycles<0 or args.interval<0 or not 0<args.action_seconds<=3:
         p.error("Invalid cycles/interval")
     targets=targets_from_journal(args.l3_journal)
-    print("MISSION SHADOW: zero physical actions; candidate geometry is NOT operating permission")
+    print("MF-DOD MODE:",args.mode,"; map targets do not imply access permission")
+    if args.mode=="motor" and not (args.motor_enable and args.camera and args.ultrasonic):
+        p.error("motor mode requires --motor-enable --camera --ultrasonic")
     for target in targets:
         print(target.objective_id,target.latitude,target.longitude,target.purpose)
-    if input("Confirm reviewed destinations for MANUAL SHADOW ONLY (type YES): ").strip()!="YES":
+    if input("Confirm destinations and mode (type YES): ").strip()!="YES":
         print("Aborted before opening sensors");return
-    if args.ultrasonic and input("Motor AND servo power disconnected? Type DISCONNECTED: ").strip()!="DISCONNECTED":
+    if args.mode=="shadow" and args.ultrasonic and input("Motor AND servo power disconnected? Type DISCONNECTED: ").strip()!="DISCONNECTED":
         print("Aborted before opening serial");return
     from sensors.phone_position_service import PhonePositionService
     from sensors.phone_attitude_service import PhoneAttitudeService
-    observer=sonar=None
+    if args.mode=="motor" and input("Confirm controlled site and cutoff; type ENABLE MOTORS: ").strip()!="ENABLE MOTORS":
+        print("Not enabled");return
+    observer=sonar=motor=None
     with Path(args.output).open("x",encoding="utf-8") as stream:
         try:
             if args.camera:
                 from mf_dod_shadow_perception import ShadowCameraObserver
                 observer=ShadowCameraObserver()
-            if args.ultrasonic:
+            if args.mode=="motor":
+                from l1_rover_controler_ra4m1 import L1RoverControler
+                motor=L1RoverControler(args.serial)
+                motor.connect_and_prepare()
+                class MotorSonar:
+                    def read(self): return motor.get_front_sensor_state()
+                sonar=MotorSonar()
+            elif args.ultrasonic:
                 from mf_dod_shadow_sonar import ReadOnlySonar
                 sonar=ReadOnlySonar().open()
             run_cycles(targets,args.l3_journal,stream,
                        PhonePositionService(),PhoneAttitudeService(),
                        observer=observer,sonar=sonar,
-                       max_cycles=args.cycles,interval=args.interval)
+                       max_cycles=args.cycles,interval=args.interval,
+                       motor=motor,action_seconds=args.action_seconds)
         finally:
-            if sonar is not None: sonar.close()
+            if motor is not None:
+                try: motor.stop()
+                finally: motor.disarm()
+            elif sonar is not None: sonar.close()
             if observer is not None: observer.close()
 
 if __name__=="__main__":
