@@ -248,7 +248,7 @@ The live shadow entry point is `mf_dod_live_shadow.py`. It never calls the exist
 3. **Supervised manual field walkthrough:** observe real sensor changes while the human physically moves the rover, with **zero motor/servo power** and complete decision logs.
 4. **Mission planning research:** test stronger doctrine attribution, mission memory, spatial reasoning, and the distinction between target selection and route planning.
 5. **Simulation expansion:** visualize the L4 → L3 → L2/L1 architecture in Gazebo without prematurely replacing the project's control stack.
-6. **Safety and deployment gates:** separately review operating permissions, physical interlocks, watchdogs, communications loss, geofence evidence, and emergency stop before **any** actuated cognitive integration.
+6. **Real test** With motors on :-)
 
 See [Issue #16](https://github.com/jbruks/CognitiveOps/issues/16) for the current manual-shadow validation and [MF-DoD iteration closeout](docs/architecture/MF_DOD_ITERATION_CLOSEOUT_20261030.md) for prior results and limitations.
 
