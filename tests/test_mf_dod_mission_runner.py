@@ -62,7 +62,7 @@ class MissionRunnerTests(unittest.TestCase):
             path=Path(d)/"journal.jsonl";fixture(path)
             gps=FakeSensor([dict(available=False,fresh=False,latitude=None,longitude=None,horizontal_accuracy_m=None)])
             attitude=FakeSensor([dict(available=False,fresh=False,heading_deg=None)])
-            sonar=FakeSensor([dict(front_distance_valid=False,front_blocked=None)])
+            sonar=SimpleNamespace(read=lambda: dict(front_distance_valid=False,front_blocked=None))
             output=io.StringIO()
             run_cycles(targets_from_journal(path),path,output,gps,attitude,
                        sonar=sonar,max_cycles=1,interval=0)
