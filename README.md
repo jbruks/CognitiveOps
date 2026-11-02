@@ -196,6 +196,33 @@ Likewise, **navigation arrival is not inspection success**: a candidate arrival 
 
 ---
 
+## Experimental map reconnaissance: L4 recognizes, L3 locates (new lab PoC)
+
+A separate **non-actuating experiment** (`mf_dod_map_recon_poc.py`) tests the minimal extension:
+
+1. **L4** receives the short mission **“Reconnoitre the area”**, an aerial map preview and optional site context. GPT proposes up to four high-level observation goals based on *visible* features (possible runway, buildings, tracks). These remain hypotheses, not verified land-use classifications.
+2. An **operator approves the objectives for offline analysis**.
+3. **L3** examines the same map and proposes **pixel locations for observation points** for each objective.
+4. Deterministic raster georeferencing converts the selected pixels to **WGS84 GPS coordinates**, with bounds and coordinate-system checks.
+5. An append-only **JSONL journal** records inputs, L4 output, approval, each L3 output, GPS result and provider request IDs. **No physical actuation occurs.**
+
+This is intentionally a **small, separate lab demonstrator**; it does not replace the existing sequential physical rover loop, wire the new destinations into the motor controller, estimate traversability, or establish reliable image interpretation. L4 feature recognition and L3 destination quality need real evaluation.
+
+With `OPENAI_API_KEY` configured, Python packages `rasterio`, `numpy`, `Pillow`, and `openai` available, and a **correctly georeferenced** local GeoTIFF:
+
+```bash
+python -m unittest -v tests.test_mf_dod_map_recon_poc
+python -m mf_dod_map_recon_poc \
+  --map qgis_pr/llombai_airfield.tif \
+  --context mission_packages/llombai_sim/site_context.txt \
+  --mission "Reconnoitre the area" \
+  --journal /tmp/cognitiveops_map_recon.jsonl
+```
+
+The local QGIS image is not tracked in the repository and must exist on the operator's workstation. GeoTIFF spatial reference and pixel transform must be verified independently; a calculated WGS84 value is **not** a safe or authorized navigation goal.
+
+---
+
 ## Demonstration: Llombai mission replanning
 
 The repo includes tooling for an experimental Llombai airfield inspection scenario. The local Mission Package consists of a manifest, site context, and GeoJSON candidate geometry.
