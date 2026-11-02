@@ -30,10 +30,14 @@ def guidance(lat1,lon1,lat2,lon2,heading_deg=None):
 
 def replay(journal,lat,lon,heading=None):
     rows=[json.loads(line) for line in Path(journal).read_text(encoding="utf-8").splitlines() if line.strip()]
-    if not any(x.get("stage")=="OPERATOR_APPROVED_FOR_OFFLINE_ONLY" for x in rows):
-        raise ValueError("Journal has no offline operator approval")
+    approvals=[x for x in rows if x.get("stage")=="OPERATOR_APPROVED_FOR_OFFLINE_ONLY"]
+    if len(approvals)!=1 or not isinstance(approvals[0].get("ids"),list):
+        raise ValueError("Journal must contain one explicit offline approval")
+    approved=set(approvals[0]["ids"])
     out=[]
     for cycle,row in enumerate((x for x in rows if x.get("stage")=="L3_GEO_PROPOSAL"),1):
+        if row["output"]["objective_id"] not in approved:
+            raise ValueError("L3 proposed an unapproved objective")
         target=row["output"].get("calculated_gps")
         item={"cycle":cycle,"input_stage":"L3_GEO_PROPOSAL","objective_id":row["output"]["objective_id"],
               "llm_request_id":row.get("request_id"),
