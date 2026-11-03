@@ -1,0 +1,27 @@
+RURAL CROSSROADS LAB — SYNTHETIC SIMULATION ONLY
+
+Purpose: demonstrate whether GPT L4 and L3 generalize from the Llombai
+airfield reconnaissance image to a visually distinct rural environment.
+
+This is a fully invented aerial-style illustration converted to georeferenced
+GeoTIFF (EPSG:3857) for repeatable OFFLINE visual reasoning. Its positions
+and WGS84 conversions do NOT correspond to a real operating site and are
+NOT authorized destinations for the physical rover.
+
+Mission intent: Reconnoitre the area. Identify visible features worth
+observing, and propose observation positions based on the image.
+
+Possible visual hypotheses (not mandatory preassigned goals):
+unpaved roads or tracks and their junction; small farm-like structures
+with a yard; orchard or patterned rows; tree patches; water-filled area.
+Do not assume any feature can be traversed or observed from a proposed
+pixel. The map has no elevation, permissions, entrances, obstacle heights
+or ground truth about traversability.
+
+L4 should derive up to four visually supported observation objectives.
+L3 should select one plausible image pixel per objective, then the
+deterministic georeferencing routine converts pixels to WGS84.
+
+The resulting L3 GPS values must NEVER be passed to powered rover control.
+For field work, replace this entire package with a real, verified map and
+operator-validated field constraints.
