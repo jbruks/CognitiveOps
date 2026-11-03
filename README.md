@@ -2,7 +2,7 @@
 
 ### Mission-first cognitive autonomy for unmanned ground vehicles
 
-**From doctrine and mission intent to explainable, supervised robotic decisions.**
+**From mission intent and operational doctrine to dynamically composed LLM reasoning, explainable objectives, and supervised robotic decisions.**
 
 CognitiveOps is an experimental cognitive autonomy architecture built around a real unmanned ground vehicle (UGV). Its research question is straightforward:
 
@@ -13,6 +13,60 @@ Rather than using an LLM merely to choose the next steering command, CognitiveOp
 The project combines a physical rover platform, an experimental **Mission First / MF-DoD** cognitive architecture, and a traceable simulation and non-actuating field-test workflow.
 
 > **Research status:** The L4 → L3 → L4 replanning loop has been demonstrated in simulation with GPT-5.4. The new live *manual shadow* integration has passed software tests but **has not yet been validated on the physical rover**. This is research software, not a field-qualified autonomous system.
+
+---
+
+## The core differentiator: doctrine-driven cognition and prompts generated on the fly
+
+**CognitiveOps is not primarily a waypoint follower with an LLM attached. Its central research proposition is that mission intent and doctrine can be turned into *situational, level-specific reasoning prompts* at runtime.** The rover should not need a separately hard-coded decision script for every site, mission, or unexpected event.
+
+Two complementary ideas define the approach:
+
+1. **Doctrine as operational reasoning context.** Mission-relevant manuals, principles, constraints, priorities and procedures are selected and supplied to the appropriate cognitive agent. Doctrine should influence *what matters*, *which evidence to seek*, *how to assess uncertainty*, and *when to escalate*—not act as an unchecked actuator command.
+2. **Dynamic prompt composition.** Instead of treating one static prompt as the entire intelligence of the rover, CognitiveOps builds each L4/L3 request from the **current mission, relevant doctrine where wired in, site/map context, approved objectives, recent events, sensor/navigation feedback, and an explicit output contract**. The context changes when the mission or situation changes; a new prompt can therefore ask a different question at the correct cognitive level, without rewriting the navigation software.
+
+This is the intended **Mission First → Doctrine → Context → Prompt → L4/L3 Decision → Feedback → Next Prompt** cycle:
+
+```text
+            MISSION INTENT + MISSION PACKAGE
+                          │
+      DOCTRINE / GUIDANCE + SITE / MAP CONTEXT
+                          │
+                          ▼
+                CONTEXT ASSEMBLY
+          objectives · constraints · memory
+          GPS/heading · perception · incidents
+                          │
+                          ▼
+                DYNAMIC L4 / L3 PROMPT
+         level-specific task + allowed decisions
+           relevant evidence + JSON contract
+                          │
+                          ▼
+                   GPT REASONING
+         L4: objectives / priorities / replanning
+         L3: observation targets / incident review
+                          │
+                          ▼
+           VALIDATION + HUMAN SUPERVISION
+                          │
+                          ▼
+                   EVENT JOURNAL
+                          │
+                     new feedback
+                          └──────────► next context
+```
+
+**Why this matters:** changing the mission, doctrine, or observed conditions should change the *reasoning context* and potentially the proposed plan, while the deterministic geospatial calculations, authorization boundaries and physical-control software remain stable. This separation is the core architectural hypothesis to test—not a claim that any prompt guarantees correct behavior.
+
+### What is implemented, and what remains research
+
+- **Implemented:** `DoctrineService` retrieves attributable excerpts from supplied references, including optional PDFs; `prepare_proposals` can pass retrieved doctrine/site/map evidence into L4 proposal generation. `PromptBuilderBase.compose_cognitive_context` supplies a bounded L3/L4 context structure for mission, constraints, recent events and L4 doctrine hits.
+- **Implemented:** the map reconnaissance experiment constructs L4 and L3 requests at runtime using the **mission, site description, current image and current approved objective**; structured instructions and output schemas remain deliberately stable.
+- **Implemented and tested:** the optional cognitive mission supervisor assembles fresh **incident-specific** L3 requests from the active objective, navigation/tactical state and remaining approved IDs; on escalation, it constructs an L4 replan request using the blocked objective, reason and approved remaining objectives. On 3 November 2026, GPT-5.4 returned `REQUEST_L4_REPLAN` and a valid L4 ordering for the synthetic Rural Crossroads incident.
+- **Not yet demonstrated end-to-end:** automatic retrieval and injection of *mission-specific doctrinal passages into every live L3/L4 prompt*, measured causal influence of doctrine on decisions, and field-tested sensor-driven adaptive prompting. Some current experiments use fixed instruction scaffolds with **dynamic contextual inputs**, rather than synthesizing every instruction from scratch.
+
+**Design principle:** *fixed safety/contract boundaries, adaptable reasoning context*. Prompts, doctrine retrieval and mission decisions must be auditable; operator authorization and motor control must never be inferred from LLM text.
 
 ---
 
@@ -31,13 +85,13 @@ For a representative **civilian airfield visual-inspection experiment**, an oper
 
 L4 then proposes a mission-level plan. L3 manages the status of individual navigation tasks and can escalate problems back to L4. Lower layers provide navigation calculations, perception, constrained action selection, and—for the legacy physical rover—actuator interfaces.
 
-**Agreed next PoC step:** L4 specifies *what* to achieve; **L3 will select and calculate geographic destinations** from the georeferenced map, including proposed new points where useful. Small deterministic functions will convert map positions to GPS coordinates and calculate distances, bearings, and waypoint geometry. **This is planned, not yet implemented**: the current code still resolves previously documented POIs through the Mission Package after approval. No map or model output grants site-access permission.
+**Geospatial PoC status:** The separate map reconnaissance experiment now demonstrates L4-generated inspection objectives and L3-selected image observation points converted to WGS84 using deterministic georeferencing (Llombai and synthetic Rural Crossroads). These remain **offline, unverified proposals**, not permitted or traversability-checked physical destinations. The Mission Package POI-based path also remains available.
 
 ---
 
 ## Doctrine-grounded decision-making
 
-**CognitiveOps is intended to reason from both a mission and a doctrine—not just react to sensor data.** The operator defines *what must be achieved*; doctrine provides the reference principles, procedures, priorities, and constraints that inform *how the mission should be approached*. This is central to the research value of the L4/L3 agents.
+**Doctrine is a first-class input to the cognitive architecture—not optional background reading or a decorative citation.** Mission intent defines *what* should be achieved; doctrine provides the principles, procedures, priorities and constraints that can guide *how* objectives are selected, interpreted and revised. A major research question is whether retrieving the right passages and placing them in the *right dynamically assembled prompt* materially improves L4/L3 decisions. The current system is instrumented to investigate this; such improvement has not yet been established empirically. The operator defines *what must be achieved*; doctrine provides the reference principles, procedures, priorities, and constraints that inform *how the mission should be approached*. This is central to the research value of the L4/L3 agents.
 
 The reasoning flow is deliberately explicit:
 
