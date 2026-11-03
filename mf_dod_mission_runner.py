@@ -8,7 +8,6 @@ It never calls L2.step() or its automatic reverse recovery.
 import argparse
 from datetime import datetime, timezone
 import json
-import math
 from pathlib import Path
 import time
 
@@ -100,11 +99,7 @@ def run_cycles(targets, source_journal, stream, gps, attitude,
                 safe_range=(row.get("ultrasonic",{}).get("front_distance_valid") is True
                             and row["ultrasonic"].get("front_blocked") is False)
                 safe_camera=(row.get("perception",{}).get("status")=="CAMERA_OBSERVED")
-                safe_navigation=(nav["status"]=="OBSERVING_MANUAL_MOTION"
-                    and all(isinstance(nav.get(k),(float,int))
-                            and math.isfinite(nav[k])
-                            for k in ("distance_m","bearing_deg","heading_error_deg")))
-                if safe_navigation and safe_range and safe_camera:
+                if nav["status"]=="OBSERVING_MANUAL_MOTION" and safe_range and safe_camera:
                     if proposed.get("action") in ("MOVE_FORWARD","FORWARD_LEFT","FORWARD_RIGHT"):
                         if nav["distance_m"]>target.radius_m:
                             selected=proposed["action"]
@@ -135,11 +130,6 @@ def run_cycles(targets, source_journal, stream, gps, attitude,
                 time.sleep(interval)
     except KeyboardInterrupt:
         record(stream,"INTERRUPTED",cycle)
-    except Exception as exc:
-        record(stream,"FAULT_ABORT",cycle,error_type=type(exc).__name__,error=str(exc))
-        if motor is not None:
-            motor.stop()
-        raise
     finally:
         record(stream,"END",cycle,visited=idx,total=len(targets),
                inspections="UNVERIFIED",physical_actions=0)
@@ -185,14 +175,7 @@ def main(argv=None):
                 observer=ShadowCameraObserver()
             if args.mode=="motor":
                 from l1_rover_controler_ra4m1 import L1RoverControler
-                class StrictAckController(L1RoverControler):
-                    """Require explicit serial ACK for motion and STOP."""
-                    def _request(self,line,expected_prefixes=(),required=True):
-                        if line in {"ARM","DISARM","STOP","HOLD",
-                                    "MOVE_FORWARD","FORWARD_LEFT","FORWARD_RIGHT"}:
-                            required=True
-                        return super()._request(line,expected_prefixes,required)
-                motor=StrictAckController(args.serial)
+                motor=L1RoverControler(args.serial)
                 motor.connect_and_prepare()
                 class MotorSonar:
                     def read(self): return motor.get_front_sensor_state()
@@ -206,13 +189,11 @@ def main(argv=None):
                        max_cycles=args.cycles,interval=args.interval,
                        motor=motor,action_seconds=args.action_seconds)
         finally:
-            try:
-                if motor is not None:
-                    try: motor.stop()
-                    finally: motor.disarm()
-                elif sonar is not None: sonar.close()
-            finally:
-                if observer is not None: observer.close()
+            if motor is not None:
+                try: motor.stop()
+                finally: motor.disarm()
+            elif sonar is not None: sonar.close()
+            if observer is not None: observer.close()
 
 if __name__=="__main__":
     main()
