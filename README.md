@@ -304,7 +304,27 @@ Two distinct execution paths matter:
 
 The live shadow entry point is `mf_dod_live_shadow.py`. It never calls the existing L1 actuation interface. Optional sonar sends only `GET_DISTANCE` over serial; **opening a serial connection may reset a microcontroller**, so motor and servo power must be **physically isolated** before use. The shadow mode is observational and must not be treated as a safety-certified actuator interlock.
 
-**Current integration gap:** real sensor observations have not yet been connected to a fully validated automatic L3-escalation / L4-replanning mission lifecycle.
+### RC-guided field test (planned, no software changes)
+
+For the next physical field test, **the operator drives the rover using its existing RC transmitter**, following the navigation information displayed on the laptop. This replaces carrying the rover by hand during a manual-shadow walkthrough; it is **not** autonomous driving.
+
+- **RC operator:** retains exclusive physical control of throttle and steering. Confirm the RC receiver/transmitter control path works as intended before driving; do not assume the shadow software provides an actuator interlock.
+- **CognitiveOps:** runs `mf_dod_mission_runner.py` in its existing `--mode shadow`, reading phone GPS and heading and, when enabled, camera/VisionNN observations. The screen reports the current objective, navigation status, distance to target, target bearing, and tactical advice as available. These are **advisory**, not RC or motor commands.
+- **Cognitive review:** the existing optional `--allow-api` mode can request GPT L3 review after persistent HOLD/uncertainty and GPT L4 replanning of remaining approved targets. Live GPS/perception-driven behavior has **not** yet been verified on the physical rover.
+- **Logging:** per-cycle GPS, heading, navigation, perception, and available cognitive decisions go into the runner's JSONL output. Reaching a destination still requires explicit operator confirmation (`REACHED`); this does not verify an inspection.
+- **No software-controlled actuation:** do **not** select `--mode motor` or `--motor-enable`. For a straightforward RC-driven test, omit `--ultrasonic` unless its read-only serial connection and the physical power/isolation arrangement have been checked separately; opening serial can reset the RA4M1.
+
+The rover's motors **must be powered for RC driving**, unlike the earlier *hand-carried/de-energized* observation procedure. This is therefore a distinct supervised test: check RC authority, a clear authorized test area, and a reliable physical stop procedure before operation. Never use synthetic Rural Crossroads coordinates for a physical test; only separately verified, approved real-world destinations.
+
+Existing console cycle output has the form:
+
+```text
+[1] OBJ-1 OBSERVING_MANUAL_MOTION distance=42.3 bearing=135.0 tactical=HOLD (motor=OFF)
+```
+
+The current console displays **target bearing**, not an explicit turn-angle instruction or graphical dashboard. No display or control changes are required for this test.
+
+**Current integration boundary:** the event-triggered L3 → L4 path has passed mocked software tests and a live GPT-5.4 **synthetic incident replay**; it has not yet been demonstrated with real sensor feedback during RC-guided operation.
 
 ---
 
@@ -313,7 +333,7 @@ The live shadow entry point is `mf_dod_live_shadow.py`. It never calls the exist
 1. **Small L3 geospatial extension:** give L3 the georeferenced map and minimal coordinate/bearing calculations; allow model-proposed destinations beyond preset POIs, validate proposals, and record each input, LLM decision, and output in the existing **sequential, discrete debugging loop**. Keep L4 responsible for mission objectives and replanning; avoid new agents or production architecture.
 2. **Validated real-time observation:** verify GPS/heading, camera/VisionNN, ultrasonic telemetry and timing in a stationary, de-energized physical setup.
 3. **Sensor-to-cognition integration:** convert meaningful navigation/perception incidents into bounded L3 reviews, and route justified replanning requests to L4.
-4. **Supervised manual field walkthrough:** observe real sensor changes while the human physically moves the rover, with **zero motor/servo power** and complete decision logs.
+4. **RC-guided shadow field test:** operator drives using the original RC transmitter while the laptop displays the existing GPS, bearing, distance and advisory output; CognitiveOps remains in non-actuating shadow mode and records the cycles. Validate control separation and physical stopping before driving.
 5. **Mission planning research:** test stronger doctrine attribution, mission memory, spatial reasoning, and the distinction between target selection and route planning.
 6. **Simulation expansion:** visualize the L4 → L3 → L2/L1 architecture in Gazebo without prematurely replacing the project's control stack.
 7. **Supervised powered rover trial:** only after stationary sensor checks, verified operating permissions, actuator/STOP behavior, watchdog and emergency-stop review; begin with a bounded single-goal test.
@@ -329,7 +349,8 @@ See [Issue #16](https://github.com/jbruks/CognitiveOps/issues/16) for the curren
 | L4/L3 simulation and replay | `mf_dod_integrated_agent.py`, `mf_dod_event_replay.py`, `mf_dod_telemetry_replay.py` |
 | Mission package and geospatial validation | `mission_package.py`, `llombai_sim_package.py` |
 | Doctrine and cognitive services | `doctrine_service.py`, `llm/llm_service.py` |
-| Live manual shadow | `mf_dod_live_shadow.py`, `mf_dod_shadow_perception.py`, `mf_dod_shadow_sonar.py` |
+| Live manual shadow and RC-guided display | `mf_dod_live_shadow.py`, `mf_dod_mission_runner.py`, `mf_dod_shadow_perception.py`, `mf_dod_shadow_sonar.py` |
+| Event-triggered L3/L4 cognition and lab replay | `mf_dod_cognitive_supervisor.py`, `experiments/mf_dod_live_gpt_incident_replay.py` |
 | Rover perception and tactical layer | `perception_module.py`, `vision_nn_worker.py`, `l2_tactical_planner.py` |
 | Existing physical control | `l1_rover_controler_ra4m1.py`, `ra4m1_rover_controller/` |
 | Development documentation | `docs/architecture/` and GitHub Issues |
