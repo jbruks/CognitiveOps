@@ -89,6 +89,57 @@ L4 then proposes a mission-level plan. L3 manages the status of individual navig
 
 ---
 
+## Real doctrinal publications: from established practice to a usable product
+
+**CognitiveOps already works with concrete, published doctrine—not invented rules or generic LLM prompts.** The repository includes local PDF reference material in [`docs/references/`](docs/references/) and a source catalogue in [`docs/references/readme.md`](docs/references/readme.md). These are *professional manuals and doctrinal publications*, not books authored by the CognitiveOps team.
+
+| Real reference | Publisher / documented title | Practical CognitiveOps translation | Main level |
+| --- | --- | --- | --- |
+| **MCTP 3-01A — *Scouting and Patrolling*** | U.S. Marine Corps | Convert a reconnaissance mission into information requirements, observations and an ordered set of inspection objectives. | **L4** mission cognition |
+| **FM 3-25.26 — *Map Reading and Land Navigation*** | U.S. Army | Interpret terrain and position, reason about direction, routes, navigation uncertainty and terrain association; translate mission objectives into geospatial tasks. | **L3** navigation, with L2 feedback |
+| **ATP 3-20.98 — *Scout Platoon*** | U.S. Army | Connect reconnaissance purpose, collection priorities, terrain, observation and movement across the mission and task layers. | **L4 ↔ L3 ↔ L2** |
+
+The local library also contains `MCRP 3-34.3 (W CH 1) (SECURED).pdf`. Its exact content and architectural contribution should be reviewed before presenting it as a validated doctrinal input. The broader [Reconnaissance Doctrine and Cognitive Framework](docs/CognitiveOps%20%E2%80%94%20Reconnaissance%20Doctrine%20and%20Cognitive%20Framework.md) additionally discusses *Ground Reconnaissance Operations*; that framework-level reference is not evidence that the exact publication is present in the local PDF library.
+
+### Why this matters for a business-facing demonstrator
+
+The link to real operational practice is **traceable**:
+
+```text
+PUBLISHED RECONNAISSANCE / NAVIGATION DOCTRINE
+                        │
+                        ▼
+          MISSION AND INFORMATION NEED
+                        │
+                        ▼
+           CONTEXT RETRIEVAL FROM PDFs
+                        │
+                        ▼
+           L4 / L3 CONTEXTUAL PROMPTS
+                        │
+                        ▼
+        SUPERVISED RECONNAISSANCE PLAN
+                        │
+                        ▼
+         OBSERVATIONS / LOGGED REPLAN
+```
+
+For example, an operator can ask the system to **reconnoitre an area** rather than manually define every GPS destination. L4 can derive relevant observation objectives, while L3 selects candidate observation positions and reviews impediments. The doctrinal publications give the experiment a vocabulary and task structure already recognizable to professional users. That makes the prototype relevant to concrete **inspection, reconnaissance, terrain assessment and route-survey workflows**, rather than a generic AI robotics demo.
+
+**Real software hooks exist:** `DoctrineService.from_pdf_paths()` extracts page-attributed passages from operator-supplied PDFs; `DoctrineService.retrieve()` selects relevant excerpts. `mf_dod_doctrine_experiment.py` compares L4 planning with and without retrieved doctrine, and `mf_dod_doctrine_v2.py` evaluates level-specific L4/L3 doctrinal advice and source-ID attribution. Both can use the PDFs checked into `docs/references/`. Source references and model outputs can be inspected; this is a *working research integration*, not merely a conceptual slide.
+
+To reproduce the **non-actuating doctrine experiment** with the local PDF library (requires `pypdf`):
+
+```bash
+python -m mf_dod_doctrine_v2 --backend stub
+# With a configured OPENAI_API_KEY, to test real LLM responses:
+python -m mf_dod_doctrine_v2 --backend openai --model gpt-5.4 --allow-api
+```
+
+**Business-readiness boundary:** these references support domain relevance and a realistic demonstration story; they do **not** establish commercial maturity, compliance with doctrine, field reliability, or customer validation. The current live incident-replanning path has been tested with GPT-5.4 using dynamic situation context, but it does **not yet automatically retrieve and apply doctrinal passages on every L3/L4 decision**. Demonstrating measurable improvements attributable to doctrine and validating performance with end users are the next steps toward a deployable offering.
+
+---
+
 ## Doctrine-grounded decision-making
 
 **Doctrine is a first-class input to the cognitive architecture—not optional background reading or a decorative citation.** Mission intent defines *what* should be achieved; doctrine provides the principles, procedures, priorities and constraints that can guide *how* objectives are selected, interpreted and revised. A major research question is whether retrieving the right passages and placing them in the *right dynamically assembled prompt* materially improves L4/L3 decisions. The current system is instrumented to investigate this; such improvement has not yet been established empirically. The operator defines *what must be achieved*; doctrine provides the reference principles, procedures, priorities, and constraints that inform *how the mission should be approached*. This is central to the research value of the L4/L3 agents.
