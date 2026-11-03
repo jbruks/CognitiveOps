@@ -65,13 +65,15 @@ def record(stream,kind,cycle,**payload):
 
 def run_cycles(targets, source_journal, stream, gps, attitude,
                observer=None, sonar=None, max_cycles=0, interval=3,
-               approval=input, motor=None, action_seconds=1.0):
+               approval=input, motor=None, action_seconds=1.0,
+               cognitive=None):
     """Sequential mission with injectable motor, no per-maneuver approvals."""
     record(stream,"START",0,source_journal=str(source_journal),
            approved_objectives=[t.objective_id for t in targets],
            physical_mode="MOTOR" if motor else "SHADOW_ONLY")
     idx=0
     cycle=0
+    stop_reason=None
     try:
         while idx<len(targets) and (max_cycles==0 or cycle<max_cycles):
             cycle+=1
@@ -126,13 +128,31 @@ def run_cycles(targets, source_journal, stream, gps, attitude,
                     record(stream,"OPERATOR_REACHED",cycle,objective_id=target.objective_id,
                            inspection="UNVERIFIED")
                     idx+=1
+                    if cognitive is not None:
+                        cognitive.reset()
+            # Cognitive mission review occurs AFTER each physical cycle's STOP.
+            # No changes to the pre-existing L1/L2 motion command path.
+            if cognitive is not None and idx<len(targets) and target.objective_id==targets[idx].objective_id:
+                decision, remaining, events=cognitive.review(
+                    target,targets[idx+1:],nav,proposed)
+                for event in events:
+                    kind=event.pop("event")
+                    record(stream,kind,cycle,**event)
+                if decision=="HOLD":
+                    stop_reason="L3_HOLD"
+                    record(stream,"COGNITIVE_HOLD",cycle,objective_id=target.objective_id)
+                    break
+                if decision=="REPLAN":
+                    record(stream,"COGNITIVE_SKIP",cycle,objective_id=target.objective_id,
+                           inspection="UNVERIFIED_BLOCKED")
+                    targets=targets[:idx]+remaining
             if idx<len(targets) and interval:
                 time.sleep(interval)
     except KeyboardInterrupt:
         record(stream,"INTERRUPTED",cycle)
     finally:
         record(stream,"END",cycle,visited=idx,total=len(targets),
-               inspections="UNVERIFIED",physical_actions=0)
+               inspections="UNVERIFIED",stop_reason=stop_reason,physical_actions=0)
     return idx
 
 
@@ -145,13 +165,19 @@ def main(argv=None):
     p.add_argument("--motor-enable",action="store_true")
     p.add_argument("--serial",default="/dev/serial/by-id/usb-Arduino_UNO_WiFi_R4_CMSIS-DAP_3CDC7544B664-if01")
     p.add_argument("--action-seconds",type=float,default=1.0)
+    p.add_argument("--allow-api",action="store_true",help="Enable live GPT L3/L4 event reviews")
+    p.add_argument("--model",default="gpt-5.4")
+    p.add_argument("--mission-intent",default="Reconnoitre the area")
+    p.add_argument("--hold-threshold",type=int,default=3)
+    p.add_argument("--max-replans",type=int,default=1)
     p.add_argument("--camera",action="store_true")
     p.add_argument("--ultrasonic",action="store_true",
                    help="Only GET_DISTANCE; requires motors/servos electrically isolated")
     p.add_argument("--cycles",type=int,default=0)
     p.add_argument("--interval",type=float,default=3)
     args=p.parse_args(argv)
-    if args.cycles<0 or args.interval<0 or not 0<args.action_seconds<=3:
+    if (args.cycles<0 or args.interval<0 or not 0<args.action_seconds<=3
+            or args.hold_threshold<1 or args.max_replans<0):
         p.error("Invalid cycles/interval")
     targets=targets_from_journal(args.l3_journal)
     print("MF-DOD MODE:",args.mode,"; map targets do not imply access permission")
@@ -167,6 +193,13 @@ def main(argv=None):
     from sensors.phone_attitude_service import PhoneAttitudeService
     if args.mode=="motor" and input("Confirm controlled site and cutoff; type ENABLE MOTORS: ").strip()!="ENABLE MOTORS":
         print("Not enabled");return
+    cognitive=None
+    if args.allow_api:
+        from llm.llm_service import LLMService
+        from mf_dod_cognitive_supervisor import CognitiveSupervisor
+        cognitive=CognitiveSupervisor(LLMService(backend="openai",model=args.model),
+                     intent=args.mission_intent,hold_threshold=args.hold_threshold,
+                     max_replans=args.max_replans)
     observer=sonar=motor=None
     with Path(args.output).open("x",encoding="utf-8") as stream:
         try:
@@ -187,7 +220,8 @@ def main(argv=None):
                        PhonePositionService(),PhoneAttitudeService(),
                        observer=observer,sonar=sonar,
                        max_cycles=args.cycles,interval=args.interval,
-                       motor=motor,action_seconds=args.action_seconds)
+                       motor=motor,action_seconds=args.action_seconds,
+                       cognitive=cognitive)
         finally:
             if motor is not None:
                 try: motor.stop()
